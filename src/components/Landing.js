@@ -12,7 +12,11 @@ const ACCEPTED = [
   ['design_chats-000.zip', 'Design chats'],
 ];
 
-export function Landing({ onEntries, busy, progress, error, remember, setRemember }) {
+/**
+ * First page. Before anything is loaded it is the only page. Afterwards it stays reachable from the
+ * sidebar (`loaded` is a summary string then) to add more files, open the viewer or clear the data.
+ */
+export function Landing({ onEntries, busy, progress, error, remember, setRemember, loaded, onOpen, onClear }) {
   const fileInput = useRef(null);
   const folderInput = useRef(null);
 
@@ -27,13 +31,24 @@ export function Landing({ onEntries, busy, progress, error, remember, setRemembe
       <h1>Claude export viewer</h1>
       <p class="lede">Read your exported chats the way you wrote them. Everything stays in this browser tab. Nothing is uploaded.</p>
 
+      ${loaded && html`<div class="loaded-card">
+        <div>
+          <p class="loaded-label">Loaded now</p>
+          <p class="loaded-sum">${loaded}</p>
+        </div>
+        <div class="loaded-actions">
+          <button type="button" class="btn btn-primary" onClick=${onOpen}>Open viewer</button>
+          <button type="button" class="btn" onClick=${onClear}>Clear</button>
+        </div>
+      </div>`}
+
       <div class=${`drop ${busy ? 'is-busy' : ''}`} aria-live="polite">
         ${busy
           ? html`<div class="drop-busy"><span class="spinner" aria-hidden="true"></span><span>${progress || 'Working'}</span></div>`
           : html`
             <${Icon} name="uploadSimple" size=${22} />
-            <p class="drop-title">Drop files or a folder here</p>
-            <p class="drop-sub">A single conversations.json works. So does any mix of the export zips.</p>
+            <p class="drop-title">${loaded ? 'Drop more files or a folder here' : 'Drop files or a folder here'}</p>
+            <p class="drop-sub">${loaded ? 'New files are merged into what is already loaded.' : 'A single conversations.json works. So does any mix of the export zips.'}</p>
             <div class="drop-actions">
               <button type="button" class="btn btn-primary" onClick=${() => fileInput.current.click()}>Choose files</button>
               <button type="button" class="btn" onClick=${() => folderInput.current.click()}>Choose folder</button>
