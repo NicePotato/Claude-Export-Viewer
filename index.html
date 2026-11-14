@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <!-- Local only: the page may load its own files and nothing else. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <title>Claude Export Viewer</title>
+    <link rel="icon" href="data:," />
+    <link rel="preload" href="fonts/MedeoMonoVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>This viewer needs JavaScript. It runs entirely on your computer.</noscript>
+    <script src="vendor/highlight.min.js"></script>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

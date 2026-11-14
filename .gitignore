@@ -1,0 +1,6 @@
+_font_src/
+vendor/icons-src/
+__pycache__/
+*.pyc
+.DS_Store
+tests/local/
