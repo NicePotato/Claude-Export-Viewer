@@ -81,6 +81,13 @@ export function normalizeMessage(m, idx) {
     .filter((b) => b.type === 'text')
     .map((b) => b.text || '')
     .join('\n\n');
+  // What the export file itself held, before noise was dropped. Used to explain empty chats.
+  const raw = {
+    blocks: content.length,
+    flatText: Boolean(m.text && m.text.trim()),
+    unsupported: content.filter((b) => b && b.type === 'text' && UNSUPPORTED.test(b.text || '')).length
+      + (UNSUPPORTED.test(m.text || '') ? 1 : 0),
+  };
   return {
     uuid: m.uuid,
     parent: m.parent_message_uuid || null,
@@ -90,6 +97,7 @@ export function normalizeMessage(m, idx) {
     attachments: Array.isArray(m.attachments) ? m.attachments : [],
     files: Array.isArray(m.files) ? m.files : [],
     text,
+    raw,
     idx,
   };
 }
