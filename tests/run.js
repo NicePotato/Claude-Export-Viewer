@@ -1,7 +1,7 @@
 // Browser-run tests (no Node on this machine). Open /tests/ while `python serve.py` is running.
 import { zipSync, strToU8 } from '../vendor/fflate.js';
 import {
-  classify, ingestText, normalizeMessage, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
+  classify, ingestText, normalizeMessage, normalizeChat, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
 } from '../src/lib/importer.js';
 import { buildTree, resolvePath, countForks, toViewList, ROOT_UUID } from '../src/lib/tree.js';
 import { groupByRecency, chatTitle, clip, newestFirst, orderGroups } from '../src/lib/format.js';
@@ -9,6 +9,7 @@ import { searchChats } from '../src/lib/search.js';
 import { renderMarkdown } from '../src/lib/markdown.js';
 import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js';
 import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
+import { showsNothing, diagnoseEmpty } from '../src/lib/empties.js';
 
 const results = [];
 function test(name, fn) { results.push({ name, fn }); }
@@ -312,6 +313,40 @@ test('orderGroups: oldest first reverses groups and items, newest first is untou
   eq(orderGroups(g, 'new'), g);
   eq(orderGroups(g, 'old'), [{ label: 'Old', items: [0, 1] }, { label: 'New', items: [2, 3] }]);
   eq(g[0].items, [3, 2], 'input must not be mutated');
+});
+
+// ---- empty chats ----------------------------------------------------------
+const blankMsg = (uuid, parent, sender, extra = {}) => ({
+  uuid, parent_message_uuid: parent, sender, text: '', content: [], attachments: [], files: [],
+  created_at: '2026-10-05T10:54:59Z', ...extra,
+});
+const chatOf = (messages) => normalizeChat(rawChat('c', messages, ''));
+
+test('empties: a chat with text is not empty', () => {
+  const c = chatOf([msg('a', ROOT_UUID, 'human', 'hi')]);
+  eq(showsNothing(c), false);
+  eq(diagnoseEmpty(c), null);
+});
+test('empties: blank bodies are explained from the file contents', () => {
+  const c = chatOf([blankMsg('a', ROOT_UUID, 'human'), blankMsg('b', 'a', 'assistant'), blankMsg('c', 'b', 'human')]);
+  const d = diagnoseEmpty(c);
+  eq(d.code, 'blank-bodies');
+  eq([d.facts.total, d.facts.human, d.facts.assistant], [3, 2, 1]);
+  ok(d.detail.includes('3 messages') && d.detail.includes('2 from you'), d.detail);
+});
+test('empties: unsupported-block placeholder only', () => {
+  const ph = 'This block is not supported on your current device yet.';
+  eq(diagnoseEmpty(chatOf([msg('a', ROOT_UUID, 'human', ph)])).code, 'unsupported-only');
+});
+test('empties: no messages at all', () => eq(diagnoseEmpty(chatOf([])).code, 'no-messages'));
+test('empties: only system notes falls back to no-content', () => {
+  const note = blankMsg('a', ROOT_UUID, 'human', { content: [{ type: 'injected_prompt_block', text: 'date' }] });
+  eq(diagnoseEmpty(chatOf([note])).code, 'no-content');
+});
+test('empties: data without raw info is still classified', () => {
+  const c = chatOf([blankMsg('a', ROOT_UUID, 'human')]);
+  for (const m of c.messages) delete m.raw;
+  eq(diagnoseEmpty(c).code, 'no-content');
 });
 
 // ---- run ------------------------------------------------------------------
