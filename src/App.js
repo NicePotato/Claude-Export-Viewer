@@ -9,6 +9,7 @@ import { collectDropped } from './lib/files.js';
 import { saveData, loadData, clearData } from './lib/persist.js';
 import { searchChats } from './lib/search.js';
 import { chatTitle, fmtDate, groupByRecency } from './lib/format.js';
+import { readPref, writePref } from './lib/prefs.js';
 
 const VIEW_IDS = VIEWS.map((v) => v.id);
 
@@ -57,6 +58,7 @@ export function App() {
   const [showEmpty, setShowEmpty] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [railOpen, setRailOpen] = useState(() => readPref('rail', false));
   const addInput = useRef(null);
 
   const data = dataRef.current;
@@ -146,6 +148,8 @@ export function App() {
       removeEventListener('drop', drop);
     };
   }, [handleEntries]);
+
+  const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
 
   const forget = async () => {
     if (!confirm('Remove the stored export from this browser? Your original files are not touched.')) return;
@@ -279,9 +283,9 @@ export function App() {
       </button>`
     : null;
 
-  return html`<div class=${`app ${hasSelection ? 'has-selection' : ''}`}>
+  return html`<div class=${`app ${hasSelection ? 'has-selection' : ''} ${railOpen ? 'rail-open' : ''}`}>
     <${Rail}
-      view=${view} counts=${counts} canForget=${remember}
+      view=${view} counts=${counts} canForget=${remember} open=${railOpen} onToggle=${toggleRail}
       onAdd=${() => addInput.current.click()} onLog=${() => setLogOpen(true)} onForget=${forget}
     />
     <${ListPane}
