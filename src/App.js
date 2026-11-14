@@ -8,7 +8,7 @@ import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js
 import { collectDropped } from './lib/files.js';
 import { saveData, loadData, clearData } from './lib/persist.js';
 import { searchChats } from './lib/search.js';
-import { chatTitle, fmtDate, groupByRecency } from './lib/format.js';
+import { chatTitle, fmtDate, groupByRecency, orderGroups, newestFirst } from './lib/format.js';
 import { readPref, writePref } from './lib/prefs.js';
 
 const VIEW_IDS = VIEWS.map((v) => v.id);
@@ -22,8 +22,6 @@ function parseHash() {
   }
   return { view, id };
 }
-
-const byRecent = (a, b) => (a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0);
 
 function LogDialog({ data, onClose }) {
   return html`<div class="modal-backdrop" onClick=${onClose}>
@@ -58,6 +56,7 @@ export function App() {
   const [showEmpty, setShowEmpty] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [order, setOrder] = useState(() => (readPref('order', 'new') === 'old' ? 'old' : 'new'));
   const [railOpen, setRailOpen] = useState(() => readPref('rail', false));
   const addInput = useRef(null);
 
@@ -106,7 +105,6 @@ export function App() {
     try {
       await importFiles(entries, dataRef.current, setProgress);
       const d = dataRef.current;
-      d.chats.sort((a, b) => -byRecent(a, b));
       if (!hasContent(d)) {
         const notes = d.log.slice(logStart).map((l) => `${l.path.split('/').pop()}: ${l.note || l.kind}`);
         setError(`No Claude export data found. ${notes.slice(0, 3).join('; ')}`);
@@ -149,6 +147,7 @@ export function App() {
     };
   }, [handleEntries]);
 
+  const changeOrder = (next) => { writePref('order', next); setOrder(next); };
   const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
 
   const forget = async () => {
@@ -162,18 +161,23 @@ export function App() {
 
   // ---- derived data -------------------------------------------------------
   const { view, id } = route;
-  const nonEmptyChats = useMemo(() => data.chats.filter((c) => c.messages.length), [rev]);
+  // Always newest first here: groupByRecency() needs that, and stored data may have any order.
+  const chatsNewestFirst = useMemo(() => [...data.chats].sort(newestFirst), [rev]);
+  const nonEmptyChats = useMemo(() => chatsNewestFirst.filter((c) => c.messages.length), [chatsNewestFirst]);
   const emptyCount = data.chats.length - nonEmptyChats.length;
-  const visibleChats = showEmpty ? data.chats : nonEmptyChats;
+  const visibleChats = showEmpty ? chatsNewestFirst : nonEmptyChats;
   const projectName = useMemo(() => new Map(data.projects.map((p) => [p.uuid, p.name || 'Untitled project'])), [rev]);
   const projects = useMemo(
-    () => data.projects.filter((p) => p.name || p.prompt || p.docs.length).sort((a, b) => -byRecent(a, b)),
-    [rev],
+    () => {
+      const list = data.projects.filter((p) => p.name || p.prompt || p.docs.length).sort(newestFirst);
+      return order === 'old' ? list.reverse() : list;
+    },
+    [rev, order],
   );
   // Artifacts with a readable page come first; the rest only have metadata in the export.
   const artifacts = useMemo(
-    () => [...data.artifacts].sort((a, b) => (Boolean(b.page) - Boolean(a.page)) || -byRecent(a, b)),
-    [rev],
+    () => [...data.artifacts].sort((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
+    [rev, order],
   );
 
   const memoryItems = useMemo(() => {
@@ -203,14 +207,14 @@ export function App() {
     switch (view) {
       case 'projects':
         return {
-          title: 'Projects', count: projects.length, emptyText: 'No projects loaded. Add projects-000.zip.',
+          title: 'Projects', count: projects.length, sortable: true, emptyText: 'No projects loaded. Add projects-000.zip.',
           groups: [{ label: '', items: projects.map((p) => ({ id: p.uuid, title: p.name || 'Untitled project', meta: plural(p.docs.length, 'document') })) }],
         };
       case 'memory':
         return { title: 'Memory', count: counts.memory, groups: memoryItems, emptyText: 'No memory loaded. Add memories-000.zip.' };
       case 'artifacts':
         return {
-          title: 'Artifacts', count: artifacts.length, emptyText: 'No artifacts loaded. Add frames-000.zip.',
+          title: 'Artifacts', count: artifacts.length, sortable: true, emptyText: 'No artifacts loaded. Add frames-000.zip.',
           groups: [{ label: '', items: artifacts.map((a) => ({ id: a.id, title: a.title, meta: `${a.page ? 'page' : 'metadata only'}  ${fmtDate(a.updated_at)}` })) }],
         };
       case 'reflections':
@@ -227,17 +231,17 @@ export function App() {
             items: hits.map((h) => ({ id: h.chat.uuid, title: chatTitle(h.chat), snippet: h.snippet })),
           }];
         } else {
-          groups = groupByRecency(visibleChats, (c) => c.updated_at).map((g) => ({
+          groups = orderGroups(groupByRecency(visibleChats, (c) => c.updated_at), order).map((g) => ({
             label: g.label,
             items: g.items.map((c) => ({
               id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.updated_at)}  ${plural(c.messages.length, 'message')}`,
             })),
           }));
         }
-        return { title: 'Chats', count: nonEmptyChats.length, groups, searchable: true, emptyText: query ? 'No chats match.' : 'No chats loaded.' };
+        return { title: 'Chats', count: nonEmptyChats.length, groups, searchable: true, sortable: !query.trim(), emptyText: query ? 'No chats match.' : 'No chats loaded.' };
       }
     }
-  }, [view, rev, query, showEmpty, projectName, memoryItems]);
+  }, [view, rev, query, showEmpty, order, projectName, memoryItems]);
 
   // ---- detail pane --------------------------------------------------------
   const goBack = () => { location.hash = `#/${view}`; };
@@ -291,6 +295,7 @@ export function App() {
     <${ListPane}
       title=${list.title} count=${list.count} groups=${list.groups} selectedId=${id} view=${view}
       query=${query} onQuery=${setQuery} searchable=${list.searchable} footer=${footer} emptyText=${list.emptyText}
+      order=${order} onOrder=${list.sortable ? changeOrder : null}
     />
     <main class="main">${detail}</main>
     ${busy && html`<div class="toast" role="status"><span class="spinner" aria-hidden="true"></span>${progress || 'Working'}</div>`}

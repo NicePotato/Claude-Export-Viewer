@@ -57,7 +57,7 @@ function useDebounced(value, ms) {
  * Generic list column. `groups` is [{label, items:[{id, title, meta?, snippet?}]}].
  * Search is owned by the parent so the chat view can run full-text search.
  */
-export function ListPane({ title, count, groups, selectedId, view, query, onQuery, searchable, footer, emptyText }) {
+export function ListPane({ title, count, groups, selectedId, view, query, onQuery, searchable, footer, emptyText, order, onOrder }) {
   const [draft, setDraft] = useState(query || '');
   const debounced = useDebounced(draft, 140);
   useEffect(() => { onQuery?.(debounced); }, [debounced]);
@@ -69,6 +69,11 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
     <header class="list-head">
       <h2>${title}</h2>
       <span class="count">${count}</span>
+      ${onOrder && html`<button
+        type="button" class="icon-btn sort-btn" onClick=${() => onOrder(order === 'old' ? 'new' : 'old')}
+        aria-label=${order === 'old' ? 'Oldest first. Switch to newest first' : 'Newest first. Switch to oldest first'}
+        title=${order === 'old' ? 'Oldest first' : 'Newest first'}
+      ><${Icon} name=${order === 'old' ? 'sortAscending' : 'sortDescending'} size=${16} /></button>`}
     </header>
     ${searchable && html`<div class="search">
       <${Icon} name="magnifyingGlass" size=${14} />
