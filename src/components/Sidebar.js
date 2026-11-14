@@ -61,7 +61,7 @@ function useDebounced(value, ms) {
  * Generic list column. `groups` is [{label, items:[{id, title, meta?, snippet?}]}].
  * Search is owned by the parent so the chat view can run full-text search.
  */
-export function ListPane({ title, count, groups, selectedId, view, query, onQuery, searchable, footer, emptyText, order, onOrder }) {
+export function ListPane({ title, count, groups, selectedId, view, query, onQuery, searchable, footer, emptyText, order, onOrder, groupBy, onGroupBy }) {
   const [draft, setDraft] = useState(query || '');
   const debounced = useDebounced(draft, 140);
   useEffect(() => { onQuery?.(debounced); }, [debounced]);
@@ -90,6 +90,10 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
         spellcheck="false"
       />
       ${draft && html`<button type="button" class="icon-btn" aria-label="Clear search" onClick=${() => setDraft('')}><${Icon} name="x" size=${12} /></button>`}
+    </div>`}
+    ${onGroupBy && html`<div class="seg" role="group" aria-label="Group chats by">
+      <button type="button" aria-pressed=${groupBy !== 'project'} onClick=${() => onGroupBy('date')}>By date</button>
+      <button type="button" aria-pressed=${groupBy === 'project'} onClick=${() => onGroupBy('project')}>By project</button>
     </div>`}
     <div class="items">
       ${groups.map((g) => html`<section class="group" key=${g.label}>
