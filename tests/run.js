@@ -8,6 +8,7 @@ import { groupByRecency, chatTitle, clip } from '../src/lib/format.js';
 import { searchChats } from '../src/lib/search.js';
 import { renderMarkdown } from '../src/lib/markdown.js';
 import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js';
+import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
 
 const results = [];
 function test(name, fn) { results.push({ name, fn }); }
@@ -269,6 +270,36 @@ test('groupBlocks groups consecutive thinking/tool blocks', () => {
   const g = groupBlocks([{ type: 'thinking' }, { type: 'tool_use' }, { type: 'text' }, { type: 'tool_use' }]);
   eq(g.map((x) => x.kind), ['steps', 'block', 'steps']);
   eq(g[0].items.length, 2);
+});
+
+// ---- export ---------------------------------------------------------------
+const exportFixture = () => {
+  const human = n({ ...msg('h', ROOT_UUID, 'human', 'Why is my loop slow?'), attachments: [{ file_name: 'main.go', extracted_content: 'x' }] }, 0);
+  const asst = n({ ...msg('a', 'h', 'assistant', ''), content: [
+    { type: 'thinking', thinking: 'Likely allocations.' },
+    { type: 'tool_use', id: 't', name: 'mcp__srv__search', input: { query: 'go slice append' } },
+    { type: 'text', text: ['Preallocate the slice.', '', '```go', 's := make([]int, 0, n)', '```'].join('\n'), citations: [{ details: { url: 'https://go.dev/doc' } }] },
+  ] }, 1);
+  const chat = { uuid: 'c', name: 'Slow loop', created_at: '2026-03-05T10:00:00Z', messages: [human, asst] };
+  return { chat, items: toViewList(resolvePath(buildTree(chat.messages))) };
+};
+test('export: markdown has title, speakers, attachment, code and sources', () => {
+  const { chat, items } = exportFixture();
+  const md = chatToMarkdown(chat, items);
+  ok(md.startsWith('# Slow loop' + String.fromCharCode(10)), md);
+  ok(md.includes('## You') && md.includes('Attached: main.go') && md.includes('Why is my loop slow?'));
+  ok(md.includes('## Claude') && md.includes('```go') && md.includes('Sources: https://go.dev/doc'));
+  ok(!md.includes('Thinking:') && !md.includes('Tool:'), 'steps should be off by default');
+  ok(md.split(String.fromCharCode(10) + String.fromCharCode(10) + String.fromCharCode(10)).length === 1, 'no triple blank lines');
+});
+test('export: steps option adds quoted thinking and tool lines', () => {
+  const { chat, items } = exportFixture();
+  const md = chatToMarkdown(chat, items, { steps: true });
+  ok(md.includes('> Thinking: Likely allocations.') && md.includes('> Tool: search (go slice append)'));
+});
+test('export: file name is dated and safe on Windows', () => {
+  eq(exportFileName({ name: 'a/b: c?*"<>|', created_at: '2026-03-05T10:00:00Z', messages: [] }), '2026-03-05 a-b- c------.md');
+  eq(exportFileName({ name: '...', created_at: '', messages: [] }), 'chat.md');
 });
 
 // ---- run ------------------------------------------------------------------
