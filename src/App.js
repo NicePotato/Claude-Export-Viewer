@@ -81,6 +81,19 @@ export function App() {
     return () => removeEventListener('hashchange', on);
   }, []);
 
+  // "/" jumps to the search box, like most web apps.
+  useEffect(() => {
+    const on = (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
+      const box = document.querySelector('.search input');
+      if (box) { e.preventDefault(); box.focus(); box.select(); }
+    };
+    addEventListener('keydown', on);
+    return () => removeEventListener('keydown', on);
+  }, []);
+
   // Reset search when switching sections.
   useEffect(() => { setQuery(''); }, [route.view]);
 
@@ -229,7 +242,7 @@ export function App() {
   if (id) {
     if (view === 'chats') {
       const chat = data.chats.find((c) => c.uuid === id);
-      if (chat) { hasSelection = true; detail = html`<${ChatView} key=${chat.uuid} chat=${chat} onBack=${goBack} />`; }
+      if (chat) { hasSelection = true; detail = html`<${ChatView} key=${chat.uuid} chat=${chat} onBack=${goBack} query=${query} />`; }
     } else if (view === 'projects') {
       const p = data.projects.find((x) => x.uuid === id);
       if (p) { hasSelection = true; detail = html`<${ProjectView} key=${p.uuid} project=${p} memory=${data.memory.perProject[p.uuid]} onBack=${goBack} />`; }

@@ -61,7 +61,7 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
         type="search"
         value=${draft}
         onInput=${(e) => setDraft(e.target.value)}
-        placeholder="Search titles and messages"
+        placeholder="Search chats (press /)"
         aria-label="Search chats"
         spellcheck="false"
       />
