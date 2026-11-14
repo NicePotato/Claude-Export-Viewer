@@ -5,6 +5,8 @@ import { Rail, ListPane, VIEWS } from './components/Sidebar.js';
 import { ChatView } from './components/ChatView.js';
 import { ProjectView, MemoryView, ArtifactView, ReflectionView, NoSelection } from './components/Views.js';
 import { ChatPicker } from './components/ProjectLinks.js';
+import { projectsToZip } from './lib/projectExport.js';
+import { downloadBlob } from './lib/download.js';
 import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js';
 import { collectDropped } from './lib/files.js';
 import { saveData, loadData, clearData } from './lib/persist.js';
@@ -162,6 +164,13 @@ export function App() {
   });
   const changeOrder = (next) => { writePref('order', next); setOrder(next); };
   const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
+
+  const exportAllProjects = () => {
+    const entries = projects.map((p) => ({
+      project: p, memory: data.memory.perProject[p.uuid] || '', chats: chatsOfProject(assignments, nonEmptyChats, p.uuid),
+    }));
+    downloadBlob(new Blob([projectsToZip(entries)], { type: 'application/zip' }), 'claude-projects.zip');
+  };
 
   const forget = async () => {
     const msg = remember
@@ -323,7 +332,9 @@ export function App() {
     ? html`<button type="button" class="link-btn" onClick=${() => setShowEmpty((v) => !v)}>
         ${showEmpty ? 'Hide' : 'Show'} ${emptyCount} empty ${emptyCount === 1 ? 'chat' : 'chats'}
       </button>`
-    : null;
+    : view === 'projects' && projects.length > 0
+      ? html`<button type="button" class="link-btn" onClick=${exportAllProjects}>Export all projects (.zip)</button>`
+      : null;
 
   return html`<div class=${`app ${hasSelection ? 'has-selection' : ''} ${view === 'home' ? 'is-home' : ''} ${railOpen ? 'rail-open' : ''}`}>
     <${Rail}
