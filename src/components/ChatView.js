@@ -6,6 +6,7 @@ import { buildTree, resolvePath, countForks, toViewList } from '../lib/tree.js';
 import { chatTitle, fmtDate } from '../lib/format.js';
 import { chatToMarkdown, exportFileName } from '../lib/export.js';
 import { diagnoseEmpty } from '../lib/empties.js';
+import { ProjectMenu } from './ProjectLinks.js';
 
 const MAX_HITS = 500;
 const canHighlight = () => typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
@@ -85,7 +86,7 @@ function ExportMenu({ chat, items }) {
   </details>`;
 }
 
-export function ChatView({ chat, onBack, query = '' }) {
+export function ChatView({ chat, onBack, query = '', projects = [], projectId = null, onAssign }) {
   const tree = useMemo(() => buildTree(chat.messages), [chat]);
   const [choice, setChoice] = useState({});
   const path = useMemo(() => resolvePath(tree, choice), [tree, choice]);
@@ -149,6 +150,7 @@ export function ChatView({ chat, onBack, query = '' }) {
         <button type="button" class="icon-btn" disabled=${!hits} onClick=${() => focusHit(cur + 1)} aria-label="Next match"><${Icon} name="caretRight" size=${14} /></button>
       </div>`}
       ${!empty && items.length > 12 && html`<button type="button" class="btn" onClick=${toEnd}>Latest</button>`}
+      ${!empty && projects.length > 0 && onAssign && html`<${ProjectMenu} projects=${projects} value=${projectId} onChange=${(id) => onAssign(chat.uuid, id)} />`}
       ${!empty && html`<${ExportMenu} chat=${chat} items=${items} />`}
     </header>
     <div class="scroll" ref=${scroller}>

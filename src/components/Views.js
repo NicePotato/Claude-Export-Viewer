@@ -2,7 +2,7 @@
 import { html } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { Markdown } from './Markdown.js';
-import { fmtDate, humanize } from '../lib/format.js';
+import { fmtDate, humanize, chatTitle } from '../lib/format.js';
 
 function Pane({ title, meta, onBack, children }) {
   return html`<section class="pane">
@@ -31,11 +31,11 @@ function DocBody({ filename, content }) {
     ${cut > 0 && html`<div class="file-empty">${cut} more characters not shown.</div>`}`;
 }
 
-export function ProjectView({ project, memory, onBack }) {
+export function ProjectView({ project, memory, chats = [], onPickChats, onBack }) {
   return html`<${Pane}
     title=${project.name || 'Untitled project'}
     onBack=${onBack}
-    meta=${html`<span>${project.docs.length} ${project.docs.length === 1 ? 'document' : 'documents'}</span><span>${fmtDate(project.created_at)}</span>`}
+    meta=${html`<span>${project.docs.length} ${project.docs.length === 1 ? 'document' : 'documents'}</span><span>${chats.length} ${chats.length === 1 ? 'chat' : 'chats'}</span><span>${fmtDate(project.created_at)}</span>`}
   >
     ${project.description && html`<p class="lede-sm">${project.description}</p>`}
     ${project.prompt && html`<details class="block" open>
@@ -50,7 +50,17 @@ export function ProjectView({ project, memory, onBack }) {
       <summary><${Icon} name="fileText" size=${14} /><span class="grow">${d.filename}</span><${Icon} name="caretRight" size=${12} class="chev" /></summary>
       <${DocBody} filename=${d.filename} content=${d.content} />
     </details>`)}
-    ${!project.prompt && !memory && !project.docs.length && html`<div class="empty">This project has no content.</div>`}
+    ${onPickChats && html`<section class="proj-chats">
+      <div class="proj-chats-head">
+        <h2>Chats</h2>
+        <button type="button" class="btn" onClick=${onPickChats}>${chats.length ? 'Edit chats' : 'Add chats'}</button>
+      </div>
+      ${chats.map((c) => html`<a key=${c.uuid} class="row-link" href=${`#/chats/${encodeURIComponent(c.uuid)}`}>
+        <span class="row-title">${chatTitle(c)}</span><span class="row-meta">${fmtDate(c.updated_at)}</span>
+      </a>`)}
+      ${!chats.length && html`<p class="fine">No chats filed here yet.</p>`}
+    </section>`}
+    ${!project.prompt && !memory && !project.docs.length && !chats.length && html`<div class="empty">This project has no content.</div>`}
   <//>`;
 }
 
