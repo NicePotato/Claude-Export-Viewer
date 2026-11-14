@@ -328,6 +328,16 @@ details[open] > summary > .chev { transform: rotate(90deg); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .icon-btn:disabled:hover { background: transparent; color: var(--muted); }
 
+/* ---------- Empty chat explanation ---------- */
+.empty-note { margin: 24px 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.empty-note h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.empty-note h2 .icon { color: var(--muted); }
+.empty-note p { margin: 0; color: var(--text-2); max-width: 60ch; }
+.empty-note dl { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 6px; font-size: 12.5px; }
+.empty-note dl > div { display: flex; gap: 16px; }
+.empty-note dt { width: 18ch; flex: none; color: var(--faint); }
+.empty-note dd { margin: 0; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
 /* ---------- Export menu ---------- */
 .menu { position: relative; }
 .menu > summary { list-style: none; cursor: pointer; color: var(--text); }
