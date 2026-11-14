@@ -4,7 +4,7 @@ import {
   classify, ingestText, normalizeMessage, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
 } from '../src/lib/importer.js';
 import { buildTree, resolvePath, countForks, toViewList, ROOT_UUID } from '../src/lib/tree.js';
-import { groupByRecency, chatTitle, clip } from '../src/lib/format.js';
+import { groupByRecency, chatTitle, clip, newestFirst, orderGroups } from '../src/lib/format.js';
 import { searchChats } from '../src/lib/search.js';
 import { renderMarkdown } from '../src/lib/markdown.js';
 import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js';
@@ -300,6 +300,18 @@ test('export: steps option adds quoted thinking and tool lines', () => {
 test('export: file name is dated and safe on Windows', () => {
   eq(exportFileName({ name: 'a/b: c?*"<>|', created_at: '2026-03-05T10:00:00Z', messages: [] }), '2026-03-05 a-b- c------.md');
   eq(exportFileName({ name: '...', created_at: '', messages: [] }), 'chat.md');
+});
+
+// ---- ordering -------------------------------------------------------------
+test('newestFirst sorts by updated_at descending', () => {
+  const list = [{ updated_at: '2026-01-01' }, { updated_at: '2026-03-01' }, { updated_at: '2026-02-01' }];
+  eq(list.sort(newestFirst).map((x) => x.updated_at), ['2026-03-01', '2026-02-01', '2026-01-01']);
+});
+test('orderGroups: oldest first reverses groups and items, newest first is untouched', () => {
+  const g = [{ label: 'New', items: [3, 2] }, { label: 'Old', items: [1, 0] }];
+  eq(orderGroups(g, 'new'), g);
+  eq(orderGroups(g, 'old'), [{ label: 'Old', items: [0, 1] }, { label: 'New', items: [2, 3] }]);
+  eq(g[0].items, [3, 2], 'input must not be mutated');
 });
 
 // ---- run ------------------------------------------------------------------

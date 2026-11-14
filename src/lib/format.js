@@ -35,6 +35,11 @@ export function chatTitle(chat) {
   return first ? clip(first.text, 60) : 'Untitled chat';
 }
 
+/** Comparator: most recently updated first. Items need an ISO `updated_at`. */
+export function newestFirst(a, b) {
+  return a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0;
+}
+
 /**
  * Group items (already sorted newest first) into recency buckets like the Claude sidebar.
  * `getDate` returns an ISO string. Returns [{label, items}] preserving order.
@@ -64,6 +69,15 @@ export function groupByRecency(items, getDate, now = new Date()) {
     else push(monthFmt.format(d), item);
   }
   return groups;
+}
+
+/**
+ * Flip recency groups to oldest first. Input is the newest-first output of groupByRecency();
+ * both the groups and the items inside each group are reversed. 'new' returns the input as is.
+ */
+export function orderGroups(groups, order) {
+  if (order !== 'old') return groups;
+  return groups.slice().reverse().map((g) => ({ ...g, items: g.items.slice().reverse() }));
 }
 
 export function humanize(key) {
