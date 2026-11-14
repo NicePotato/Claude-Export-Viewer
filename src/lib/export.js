@@ -4,12 +4,16 @@ import { toolBrief, toolLabel } from './tools.js';
 
 const ILLEGAL = /[/\\:*?"<>|\x00-\x1f]/g;
 
+/** A name that is safe on Windows and macOS: no reserved characters, no edge dots, at most 80 characters. */
+export function safeName(text, fallback = 'untitled') {
+  const name = String(text || '').replace(ILLEGAL, '-').replace(/\s+/g, ' ').trim().replace(/^\.+|\.+$/g, '');
+  return Array.from(name).slice(0, 80).join('').trim() || fallback;
+}
+
 /** A file name that is safe on Windows and macOS, prefixed with the chat date. */
 export function exportFileName(chat) {
   const date = (chat.created_at || '').slice(0, 10);
-  let name = chatTitle(chat).replace(ILLEGAL, '-').replace(/\s+/g, ' ').trim().replace(/^\.+|\.+$/g, '');
-  name = Array.from(name).slice(0, 80).join('').trim() || 'chat';
-  return `${date ? `${date} ` : ''}${name}.md`;
+  return `${date ? `${date} ` : ''}${safeName(chatTitle(chat), 'chat')}.md`;
 }
 
 function quote(text) {

@@ -6,6 +6,7 @@ import { buildTree, resolvePath, countForks, toViewList } from '../lib/tree.js';
 import { chatTitle, fmtDate } from '../lib/format.js';
 import { chatToMarkdown, exportFileName } from '../lib/export.js';
 import { diagnoseEmpty } from '../lib/empties.js';
+import { downloadBlob, textBlob } from '../lib/download.js';
 import { ProjectMenu } from './ProjectLinks.js';
 
 const MAX_HITS = 500;
@@ -51,14 +52,7 @@ function ExportMenu({ chat, items }) {
 
   const md = () => chatToMarkdown(chat, items, { steps });
   const download = () => {
-    const url = URL.createObjectURL(new Blob([md()], { type: 'text/markdown;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = exportFileName(chat);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    downloadBlob(textBlob(md()), exportFileName(chat));
     flash('Saved');
   };
   const copy = async () => {
