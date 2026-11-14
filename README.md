@@ -36,6 +36,10 @@ The file type is detected from the content, not the name, so renamed files still
 ## What it shows
 
 - Chats grouped by recency, full-text search over titles and messages, with highlighted snippets.
+- Opening a chat from a search highlights every match in it, with previous and next controls.
+  Press `/` anywhere to jump to the search box.
+- **Export** on each chat downloads or copies it as Markdown (optionally with thinking and tool
+  calls as quoted lines). Files are named `YYYY-MM-DD Title.md`.
 - Branches: when you edited a message or retried a reply, a `< 2 / 3 >` control switches versions.
   The newest branch is shown by default.
 - Thinking and tool calls collapsed under each reply, with results paired to their calls.
