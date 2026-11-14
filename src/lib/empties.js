@@ -5,15 +5,18 @@ import { fmtDateTime } from './format.js';
 
 const cache = new WeakMap();
 
-/** True when opening the chat would show no messages at all. */
-export function showsNothing(chat) {
-  let v = cache.get(chat);
-  if (v === undefined) {
-    v = toViewList(resolvePath(buildTree(chat.messages))).length === 0;
-    cache.set(chat, v);
+/** How many messages the chat view lists on its default (latest) branch. */
+export function shownCount(chat) {
+  let n = cache.get(chat);
+  if (n === undefined) {
+    n = toViewList(resolvePath(buildTree(chat.messages))).length;
+    cache.set(chat, n);
   }
-  return v;
+  return n;
 }
+
+/** True when opening the chat would show no messages at all. */
+export const showsNothing = (chat) => shownCount(chat) === 0;
 
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
