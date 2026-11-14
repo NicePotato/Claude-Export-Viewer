@@ -10,6 +10,7 @@ import { renderMarkdown } from '../src/lib/markdown.js';
 import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js';
 import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
 import { showsNothing, diagnoseEmpty } from '../src/lib/empties.js';
+import { assign, prune, chatsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
 
 const results = [];
 function test(name, fn) { results.push({ name, fn }); }
@@ -347,6 +348,31 @@ test('empties: data without raw info is still classified', () => {
   const c = chatOf([blankMsg('a', ROOT_UUID, 'human')]);
   for (const m of c.messages) delete m.raw;
   eq(diagnoseEmpty(c).code, 'no-content');
+});
+
+// ---- chats in projects ----------------------------------------------------
+const chatsAB = [{ uuid: 'c1' }, { uuid: 'c2' }, { uuid: 'c3' }];
+const projAB = [{ uuid: 'p1', name: 'Alpha' }, { uuid: 'p2', name: '' }, { uuid: 'p3', name: 'Empty one' }];
+test('assignments: assign, move and unassign without mutating', () => {
+  const a = {};
+  const b = assign(a, 'c1', 'p1');
+  const c = assign(b, 'c1', 'p2');
+  const d = assign(c, 'c1', null);
+  eq([a, b, c, d], [{}, { c1: 'p1' }, { c1: 'p2' }, {}]);
+});
+test('assignments: prune drops unknown chats and projects', () => {
+  eq(prune({ c1: 'p1', zz: 'p1', c2: 'gone' }, chatsAB, projAB), { c1: 'p1' });
+  eq(prune(null, chatsAB, projAB), {});
+});
+test('assignments: chatsOfProject keeps order', () => {
+  eq(chatsOfProject({ c1: 'p1', c3: 'p1', c2: 'p2' }, chatsAB, 'p1').map((c) => c.uuid), ['c1', 'c3']);
+});
+test('assignments: groupByProject skips empty projects and ends with unfiled chats', () => {
+  const g = groupByProject(chatsAB, { c1: 'p1', c2: 'p2' }, projAB);
+  eq(g.map((x) => [x.id, x.label, x.items.map((c) => c.uuid)]), [
+    ['p1', 'Alpha', ['c1']], ['p2', 'Untitled project', ['c2']], [NO_PROJECT, 'No project', ['c3']],
+  ]);
+  eq(groupByProject(chatsAB, { c1: 'p1', c2: 'p1', c3: 'p1' }, projAB).map((x) => x.id), ['p1']);
 });
 
 // ---- run ------------------------------------------------------------------
