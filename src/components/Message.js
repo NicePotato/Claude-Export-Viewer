@@ -3,6 +3,9 @@ import { Icon } from './Icon.js';
 import { Markdown } from './Markdown.js';
 import { CopyButton } from './CopyButton.js';
 import { fmtDateTime, fmtBytes, hostname } from '../lib/format.js';
+import { toolBrief, toolLabel } from '../lib/tools.js';
+
+export { toolBrief, toolLabel };
 
 const STEP_TYPES = new Set(['thinking', 'tool_use', 'tool_result']);
 const RESULT_LIMIT = 6000;
@@ -11,16 +14,6 @@ const FILE_LIMIT = 20000;
 function truncate(text, limit) {
   const s = String(text ?? '');
   return s.length > limit ? { text: s.slice(0, limit), cut: s.length - limit } : { text: s, cut: 0 };
-}
-
-/** One short line describing what a tool call did. */
-export function toolBrief(block) {
-  const input = block.input && typeof block.input === 'object' ? block.input : {};
-  for (const k of ['query', 'command', 'file_path', 'path', 'url', 'pattern', 'description', 'title', 'prompt']) {
-    if (typeof input[k] === 'string' && input[k]) return input[k].replace(/\s+/g, ' ').slice(0, 90);
-  }
-  const first = Object.values(input).find((v) => typeof v === 'string' && v);
-  return first ? first.replace(/\s+/g, ' ').slice(0, 90) : '';
 }
 
 function resultText(result) {
@@ -46,12 +39,6 @@ export function groupBlocks(blocks) {
     }
   }
   return groups;
-}
-
-/** mcp__server__tool -> "tool" with the server as context; plain names pass through. */
-export function toolLabel(name) {
-  const m = /^mcp__(.+?)__(.+)$/.exec(name || '');
-  return m ? { short: m[2], full: name } : { short: name || 'tool', full: name || 'tool' };
 }
 
 function more(cut) {
