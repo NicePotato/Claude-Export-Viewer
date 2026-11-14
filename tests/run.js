@@ -1,5 +1,5 @@
 // Browser-run tests (no Node on this machine). Open /tests/ while `python serve.py` is running.
-import { zipSync, strToU8 } from '../vendor/fflate.js';
+import { zipSync, strToU8, unzipSync, strFromU8 } from '../vendor/fflate.js';
 import {
   classify, ingestText, normalizeMessage, normalizeChat, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
 } from '../src/lib/importer.js';
@@ -10,6 +10,7 @@ import { renderMarkdown } from '../src/lib/markdown.js';
 import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js';
 import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
 import { showsNothing, diagnoseEmpty } from '../src/lib/empties.js';
+import { projectToMarkdown, projectFiles, projectsToZip, uniqueName } from '../src/lib/projectExport.js';
 import { assign, prune, chatsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
 
 const results = [];
@@ -373,6 +374,39 @@ test('assignments: groupByProject skips empty projects and ends with unfiled cha
     ['p1', 'Alpha', ['c1']], ['p2', 'Untitled project', ['c2']], [NO_PROJECT, 'No project', ['c3']],
   ]);
   eq(groupByProject(chatsAB, { c1: 'p1', c2: 'p1', c3: 'p1' }, projAB).map((x) => x.id), ['p1']);
+});
+
+// ---- project export -------------------------------------------------------
+const proj = {
+  uuid: 'p1', name: 'Go: study', description: 'Learning Go.', prompt: 'Be brief.', created_at: '2026-03-01T00:00:00Z',
+  docs: [{ filename: 'notes.md', content: 'a ```fence``` inside' }, { filename: 'notes.md', content: '' }, { filename: 'a/b.txt', content: 'x' }],
+};
+const projChats = [
+  normalizeChat(rawChat('c1', [msg('m1', ROOT_UUID, 'human', 'hello'), msg('m2', 'm1', 'assistant', 'hi')], 'Slices')),
+  normalizeChat(rawChat('c2', [], '')),
+];
+test('projectExport: uniqueName keeps the extension and ignores case', () => {
+  const used = new Set();
+  eq([uniqueName('A.md', used), uniqueName('a.MD', used), uniqueName('a.md', used)], ['A.md', 'a (2).MD', 'a (3).md']);
+});
+test('projectExport: markdown holds instructions, memory, fenced documents and the chat index', () => {
+  const md = projectToMarkdown(proj, { memory: 'Likes Go.', chats: projChats });
+  const NL = String.fromCharCode(10);
+  ok(md.startsWith('# Go: study'), md);
+  ok(md.includes('## Instructions') && md.includes('Be brief.') && md.includes('## Memory') && md.includes('Likes Go.'));
+  ok(md.includes('### notes.md') && md.includes('````' + NL + 'a ```fence``` inside' + NL + '````'), 'fence must outgrow inner backticks');
+  ok(md.includes('_Empty document._') && md.includes('## Chats') && md.includes('Slices'));
+});
+test('projectExport: folder layout, safe unique names, empty chats skipped', () => {
+  const paths = projectFiles(proj, { memory: 'm', chats: projChats }).map((f) => f.path);
+  eq(paths, ['README.md', 'instructions.md', 'memory.md', 'documents/notes.md', 'documents/notes (2).md', 'documents/a-b.txt', 'chats/2026-01-01 Slices.md']);
+});
+test('projectExport: zip round-trips with one folder per project', () => {
+  const zip = projectsToZip([{ project: proj, memory: '', chats: projChats }, { project: { ...proj, uuid: 'p2' }, memory: '', chats: [] }]);
+  const files = unzipSync(zip);
+  const names = Object.keys(files).sort();
+  ok(names.includes('Go- study/README.md') && names.includes('Go- study (2)/README.md'), names.join(','));
+  ok(strFromU8(files['Go- study/chats/2026-01-01 Slices.md']).includes('hello'));
 });
 
 // ---- run ------------------------------------------------------------------
