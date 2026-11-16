@@ -238,19 +238,19 @@ export function App() {
     switch (view) {
       case 'projects':
         return {
-          title: 'Projects', count: projects.length, sortable: true, emptyText: 'No projects loaded. Add projects-000.zip.',
+          title: 'Projects', count: projects.length, sortable: true, emptyText: 'No projects loaded. Add projects-XXX.zip.',
           groups: [{ label: '', items: projects.map((p) => ({ id: p.uuid, title: p.name || 'Untitled project', meta: plural(p.docs.length, 'document') })) }],
         };
       case 'memory':
-        return { title: 'Memory', count: counts.memory, groups: memoryItems, emptyText: 'No memory loaded. Add memories-000.zip.' };
+        return { title: 'Memory', count: counts.memory, groups: memoryItems, emptyText: 'No memory loaded. Add memories-XXX.zip.' };
       case 'artifacts':
         return {
-          title: 'Artifacts', count: artifacts.length, sortable: true, emptyText: 'No artifacts loaded. Add frames-000.zip.',
+          title: 'Artifacts', count: artifacts.length, sortable: true, emptyText: 'No artifacts loaded. Add frames-XXX.zip.',
           groups: [{ label: '', items: artifacts.map((a) => ({ id: a.id, title: a.title, meta: `${a.page ? 'page' : 'metadata only'}  ${fmtDate(a.updated_at)}` })) }],
         };
       case 'reflections':
         return {
-          title: 'Reflections', count: data.reflections.length, emptyText: 'No reflections loaded. Add feedback-000.zip.',
+          title: 'Reflections', count: data.reflections.length, emptyText: 'No reflections loaded. Add feedback-XXX.zip.',
           groups: [{ label: '', items: data.reflections.map((r) => ({ id: r.period, title: r.period, meta: 'Monthly reflection' })) }],
         };
       default: {

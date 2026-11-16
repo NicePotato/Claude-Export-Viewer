@@ -5,12 +5,12 @@ import { ManifestHelp } from './ManifestHelp.js';
 
 const ACCEPTED = [
   ['conversations.json', 'Chats'],
-  ['conversations-000.zip', 'Chats, zipped'],
-  ['projects-000.zip', 'Projects and their documents'],
-  ['memories-000.zip', 'Memory'],
-  ['frames-000.zip', 'Artifacts and pages'],
-  ['feedback-000.zip', 'Reflections'],
-  ['design_chats-000.zip', 'Design chats'],
+  ['conversations-XXX.zip', 'Chats, zipped'],
+  ['projects-XXX.zip', 'Projects and their documents'],
+  ['memories-XXX.zip', 'Memory'],
+  ['frames-XXX.zip', 'Artifacts and pages'],
+  ['feedback-XXX.zip', 'Reflections'],
+  ['design_chats-XXX.zip', 'Design chats'],
 ];
 
 /**
