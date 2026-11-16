@@ -1,6 +1,7 @@
 // Export menu for one project: a folder (zip) or a single Markdown file.
-import { html, useState, useRef, useEffect } from '../lib/ui.js';
+import { html, useState, useRef } from '../lib/ui.js';
 import { Icon } from './Icon.js';
+import { useDismissDetails } from '../lib/hooks.js';
 import { downloadBlob, textBlob } from '../lib/download.js';
 import {
   projectToMarkdown, projectsToZip, projectFileName, projectZipName,
@@ -31,11 +32,7 @@ export function ProjectExportMenu({ project, memory, chats }) {
     try { await navigator.clipboard.writeText(projectToMarkdown(project, { memory, chats })); flash('Copied'); } catch { flash('Copy blocked'); }
   };
 
-  useEffect(() => {
-    const onDown = (e) => { if (ref.current?.open && !ref.current.contains(e.target)) ref.current.open = false; };
-    addEventListener('pointerdown', onDown);
-    return () => removeEventListener('pointerdown', onDown);
-  }, []);
+  useDismissDetails(ref);
 
   return html`<details class="menu" ref=${ref}>
     <summary class="btn">Export<${Icon} name="caretDown" size=${12} /></summary>

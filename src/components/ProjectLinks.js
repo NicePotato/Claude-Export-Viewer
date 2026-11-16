@@ -2,23 +2,15 @@
 import { html, useState, useRef, useEffect, useMemo } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { Modal } from './Modal.js';
+import { useDismissDetails } from '../lib/hooks.js';
 import { chatTitle, fmtDate } from '../lib/format.js';
 
 const projectLabel = (p) => p.name || 'Untitled project';
 
-/** Close a <details> menu when the user clicks elsewhere. */
-function useDismiss(ref) {
-  useEffect(() => {
-    const onDown = (e) => { if (ref.current?.open && !ref.current.contains(e.target)) ref.current.open = false; };
-    addEventListener('pointerdown', onDown);
-    return () => removeEventListener('pointerdown', onDown);
-  }, []);
-}
-
 /** Header menu on a chat: pick the project it belongs to. */
 export function ProjectMenu({ projects, value, onChange }) {
   const ref = useRef(null);
-  useDismiss(ref);
+  useDismissDetails(ref);
   const current = projects.find((p) => p.uuid === value);
   const pick = (id) => { onChange(id); if (ref.current) ref.current.open = false; };
 
