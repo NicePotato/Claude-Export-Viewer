@@ -1,7 +1,7 @@
 // Browser-run tests (no Node on this machine). Open /tests/ while `python serve.py` is running.
 import { zipSync, strToU8, unzipSync, strFromU8 } from '../vendor/fflate.js';
 import {
-  classify, ingestText, normalizeMessage, normalizeChat, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
+  classify, ingestText, safeExportUrl, normalizeMessage, normalizeChat, importFiles, emptyData, summarize, hasContent, zipEntryFilter,
 } from '../src/lib/importer.js';
 import { buildTree, resolvePath, countForks, toViewList, ROOT_UUID } from '../src/lib/tree.js';
 import { groupByRecency, chatTitle, clip, newestFirst, orderGroups } from '../src/lib/format.js';
@@ -417,6 +417,33 @@ test('projectExport: zip round-trips with one folder per project', () => {
   const names = Object.keys(files).sort();
   ok(names.includes('Go- study/README.md') && names.includes('Go- study (2)/README.md'), names.join(','));
   ok(strFromU8(files['Go- study/chats/2026-01-01 Slices.md']).includes('hello'));
+});
+
+// ---- download list (manifest) --------------------------------------------
+const manifestJson = {
+  created_at: '2026-11-14T09:11:59.546493+00:00', version: '1.0', total_files: 3,
+  data_files: [
+    { batch_index: 0, export_url: 'https://claude.ai/export/abc/download/1', category: 'conversations', part: 0, filename: 'conversations-000.zip' },
+    { batch_index: 1, export_url: 'javascript:alert(1)', category: 'projects', part: 0, filename: 'projects-000.zip' },
+    { batch_index: 2, export_url: 'https://evil.example/claude.ai', category: 'frames', part: 0, filename: 'frames-000.zip' },
+  ],
+};
+test('manifest: classified, and a normal export is not mistaken for one', () => {
+  eq(classify(manifestJson, 'manifest-x.json'), 'manifest');
+  eq(classify(rawChat('1', []), 'conversations.json'), 'conversations');
+});
+test('manifest: stored, never counted as content, links limited to claude.ai over https', () => {
+  const data = emptyData();
+  const res = ingestText('manifest-x.json', JSON.stringify(manifestJson), data);
+  eq([res.kind, res.count, hasContent(data)], ['manifest', 3, false]);
+  eq(data.manifest.files.map((f) => f.url !== ''), [true, false, false]);
+  eq(data.manifest.expires_at - Date.parse(manifestJson.created_at), 24 * 60 * 60 * 1000);
+});
+test('manifest: safeExportUrl rejects other schemes, hosts and junk', () => {
+  eq(safeExportUrl('http://claude.ai/x'), '');
+  eq(safeExportUrl('not a url'), '');
+  eq(safeExportUrl('https://sub.claude.ai/x') !== '', true);
+  eq(safeExportUrl('https://claude.ai.evil.com/x'), '');
 });
 
 // ---- run ------------------------------------------------------------------
