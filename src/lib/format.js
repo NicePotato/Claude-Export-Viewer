@@ -77,7 +77,7 @@ export function groupByRecency(items, getDate, now = new Date()) {
  */
 export function orderGroups(groups, order) {
   if (order !== 'old') return groups;
-  return groups.slice().reverse().map((g) => ({ ...g, items: g.items.slice().reverse() }));
+  return groups.toReversed().map((g) => ({ ...g, items: g.items.toReversed() }));
 }
 
 export function humanize(key) {

@@ -187,7 +187,7 @@ export function App() {
   // ---- derived data -------------------------------------------------------
   const { view, id } = route;
   // Always newest first here: groupByRecency() needs that, and stored data may have any order.
-  const chatsNewestFirst = useMemo(() => [...data.chats].sort(newestFirst), [rev]);
+  const chatsNewestFirst = useMemo(() => data.chats.toSorted(newestFirst), [rev]);
   // "Empty" means opening the chat would show nothing, not just that it has no messages in the file.
   const nonEmptyChats = useMemo(() => chatsNewestFirst.filter((c) => !showsNothing(c)), [chatsNewestFirst]);
   const emptyChats = useMemo(() => chatsNewestFirst.filter(showsNothing), [chatsNewestFirst]);
@@ -210,7 +210,7 @@ export function App() {
 
   // Artifacts with a readable page come first; the rest only have metadata in the export.
   const artifacts = useMemo(
-    () => [...data.artifacts].sort((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
+    () => data.artifacts.toSorted((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
     [rev, order],
   );
 
@@ -272,13 +272,13 @@ export function App() {
           const toItem = (c) => ({ id: c.uuid, title: chatTitle(c), meta: describe(c) });
           groups = groupBy === 'project' && projects.length
             ? groupByProject(nonEmptyChats, assignments, projects).map((g) => ({
-              label: g.label, items: (order === 'old' ? [...g.items].reverse() : g.items).map(toItem),
+              label: g.label, items: (order === 'old' ? g.items.toReversed() : g.items).map(toItem),
             }))
             : orderGroups(groupByRecency(nonEmptyChats, (c) => c.updated_at), order).map((g) => ({
               label: g.label, items: g.items.map(toItem),
             }));
           if (showEmpty && emptyChats.length) {
-            const ordered = order === 'old' ? [...emptyChats].reverse() : emptyChats;
+            const ordered = order === 'old' ? emptyChats.toReversed() : emptyChats;
             groups.push({
               label: `Empty chats (${emptyChats.length})`,
               items: ordered.map((c) => ({ id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.created_at)}  ${diagnoseEmpty(c).short}` })),
