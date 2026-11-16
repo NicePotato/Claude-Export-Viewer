@@ -108,7 +108,9 @@ export function App() {
     try {
       await importFiles(entries, dataRef.current, setProgress);
       const d = dataRef.current;
-      if (!hasContent(d)) {
+      if (!hasContent(d) && d.manifest) {
+        // A download list, not data: the start page explains what to do instead of showing an error.
+      } else if (!hasContent(d)) {
         const notes = d.log.slice(logStart).map((l) => `${l.path.split('/').pop()}: ${l.note || l.kind}`);
         setError(`No Claude export data found. ${notes.slice(0, 3).join('; ')}`);
       } else if (remember) {
@@ -319,7 +321,7 @@ export function App() {
   if (!loaded) {
     return html`<${Landing}
       onEntries=${handleEntries} busy=${busy} progress=${progress} error=${error}
-      remember=${remember} setRemember=${setRemember}
+      remember=${remember} setRemember=${setRemember} manifest=${data.manifest}
     />${dragging && html`<div class="drop-overlay">Drop to import</div>`}`;
   }
 
