@@ -5,6 +5,7 @@ import { Rail, ListPane, VIEWS } from './components/Sidebar.js';
 import { ChatView } from './components/ChatView.js';
 import { ProjectView, MemoryView, ArtifactView, ReflectionView, NoSelection } from './components/Views.js';
 import { ChatPicker } from './components/ProjectLinks.js';
+import { Modal } from './components/Modal.js';
 import { projectsToZip } from './lib/projectExport.js';
 import { downloadBlob } from './lib/download.js';
 import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js';
@@ -29,12 +30,7 @@ function parseHash() {
 }
 
 function LogDialog({ data, onClose }) {
-  return html`<div class="modal-backdrop" onClick=${onClose}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Import log" onClick=${(e) => e.stopPropagation()}>
-      <header>
-        <h2>Import log</h2>
-        <button type="button" class="icon-btn" onClick=${onClose} aria-label="Close"><${Icon} name="x" size=${14} /></button>
-      </header>
+  return html`<${Modal} title="Import log" onClose=${onClose}>
       <p class="fine">Loaded: ${summarize(data)}.</p>
       <ul class="log">
         ${data.log.map((l, i) => html`<li key=${i} class=${`log-${l.kind === 'error' ? 'error' : ''}`}>
@@ -44,8 +40,7 @@ function LogDialog({ data, onClose }) {
         </li>`)}
         ${!data.log.length && html`<li class="muted">Nothing imported in this session.</li>`}
       </ul>
-    </div>
-  </div>`;
+  <//>`;
 }
 
 export function App() {

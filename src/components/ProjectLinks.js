@@ -1,6 +1,7 @@
 // Controls for filing chats into projects: a menu on the chat and a picker on the project.
 import { html, useState, useRef, useEffect, useMemo } from '../lib/ui.js';
 import { Icon } from './Icon.js';
+import { Modal } from './Modal.js';
 import { chatTitle, fmtDate } from '../lib/format.js';
 
 const projectLabel = (p) => p.name || 'Untitled project';
@@ -53,18 +54,7 @@ export function ChatPicker({ project, chats, assignments, projects, onToggle, on
   }, [chats, q]);
   const inProject = chats.filter((c) => assignments[c.uuid] === project.uuid).length;
 
-  useEffect(() => {
-    const on = (e) => { if (e.key === 'Escape') onClose(); };
-    addEventListener('keydown', on);
-    return () => removeEventListener('keydown', on);
-  }, [onClose]);
-
-  return html`<div class="modal-backdrop" onClick=${onClose}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label=${`Chats in ${projectLabel(project)}`} onClick=${(e) => e.stopPropagation()}>
-      <header>
-        <h2>Chats in ${projectLabel(project)}</h2>
-        <button type="button" class="icon-btn" onClick=${onClose} aria-label="Close"><${Icon} name="x" size=${14} /></button>
-      </header>
+  return html`<${Modal} title=${`Chats in ${projectLabel(project)}`} onClose=${onClose}>
       <p class="fine">${inProject} selected. The export does not link chats to projects, so tick the ones that belong here.</p>
       <div class="search picker-search">
         <${Icon} name="magnifyingGlass" size=${14} />
@@ -81,6 +71,5 @@ export function ChatPicker({ project, chats, assignments, projects, onToggle, on
         })}
         ${!rows.length && html`<li class="muted picker-none">No chats match.</li>`}
       </ul>
-    </div>
-  </div>`;
+  <//>`;
 }
