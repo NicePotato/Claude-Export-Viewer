@@ -10,6 +10,7 @@ import { saveData, loadData, clearData } from './lib/persist.js';
 import { searchChats } from './lib/search.js';
 import { chatTitle, fmtDate, groupByRecency, orderGroups, newestFirst } from './lib/format.js';
 import { readPref, writePref } from './lib/prefs.js';
+import { showsNothing, shownCount, diagnoseEmpty } from './lib/empties.js';
 
 const VIEW_IDS = VIEWS.map((v) => v.id);
 
@@ -163,9 +164,15 @@ export function App() {
   const { view, id } = route;
   // Always newest first here: groupByRecency() needs that, and stored data may have any order.
   const chatsNewestFirst = useMemo(() => [...data.chats].sort(newestFirst), [rev]);
-  const nonEmptyChats = useMemo(() => chatsNewestFirst.filter((c) => c.messages.length), [chatsNewestFirst]);
-  const emptyCount = data.chats.length - nonEmptyChats.length;
-  const visibleChats = showEmpty ? chatsNewestFirst : nonEmptyChats;
+  // "Empty" means opening the chat would show nothing, not just that it has no messages in the file.
+  const nonEmptyChats = useMemo(() => chatsNewestFirst.filter((c) => !showsNothing(c)), [chatsNewestFirst]);
+  const emptyChats = useMemo(() => chatsNewestFirst.filter(showsNothing), [chatsNewestFirst]);
+  const emptyCount = emptyChats.length;
+
+  // A link to an empty chat must show it in the list, even if that section is collapsed.
+  useEffect(() => {
+    if (route.view === 'chats' && route.id && emptyChats.some((c) => c.uuid === route.id)) setShowEmpty(true);
+  }, [route, emptyChats]);
   const projectName = useMemo(() => new Map(data.projects.map((p) => [p.uuid, p.name || 'Untitled project'])), [rev]);
   const projects = useMemo(
     () => {
@@ -225,23 +232,30 @@ export function App() {
       default: {
         let groups;
         if (query.trim()) {
-          const hits = searchChats(visibleChats, query);
+          const hits = searchChats(nonEmptyChats, query);
           groups = [{
             label: `${plural(hits.length, 'result')}`,
             items: hits.map((h) => ({ id: h.chat.uuid, title: chatTitle(h.chat), snippet: h.snippet })),
           }];
         } else {
-          groups = orderGroups(groupByRecency(visibleChats, (c) => c.updated_at), order).map((g) => ({
+          groups = orderGroups(groupByRecency(nonEmptyChats, (c) => c.updated_at), order).map((g) => ({
             label: g.label,
             items: g.items.map((c) => ({
-              id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.updated_at)}  ${plural(c.messages.length, 'message')}`,
+              id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.updated_at)}  ${plural(shownCount(c), 'message')}`,
             })),
           }));
+          if (showEmpty && emptyChats.length) {
+            const ordered = order === 'old' ? [...emptyChats].reverse() : emptyChats;
+            groups.push({
+              label: `Empty chats (${emptyChats.length})`,
+              items: ordered.map((c) => ({ id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.created_at)}  ${diagnoseEmpty(c).short}` })),
+            });
+          }
         }
         return { title: 'Chats', count: nonEmptyChats.length, groups, searchable: true, sortable: !query.trim(), emptyText: query ? 'No chats match.' : 'No chats loaded.' };
       }
     }
-  }, [view, rev, query, showEmpty, order, projectName, memoryItems]);
+  }, [view, rev, query, showEmpty, order, projectName, memoryItems, emptyChats, nonEmptyChats]);
 
   // ---- detail pane --------------------------------------------------------
   const goBack = () => { location.hash = `#/${view}`; };
