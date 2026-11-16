@@ -1,6 +1,7 @@
 import { html, useRef } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { fromInput } from '../lib/files.js';
+import { ManifestHelp } from './ManifestHelp.js';
 
 const ACCEPTED = [
   ['conversations.json', 'Chats'],
@@ -16,7 +17,7 @@ const ACCEPTED = [
  * First page. Before anything is loaded it is the only page. Afterwards it stays reachable from the
  * sidebar (`loaded` is a summary string then) to add more files, open the viewer or clear the data.
  */
-export function Landing({ onEntries, busy, progress, error, remember, setRemember, loaded, onOpen, onClear }) {
+export function Landing({ onEntries, busy, progress, error, remember, setRemember, loaded, onOpen, onClear, manifest }) {
   const fileInput = useRef(null);
   const folderInput = useRef(null);
 
@@ -54,6 +55,8 @@ export function Landing({ onEntries, busy, progress, error, remember, setRemembe
               <button type="button" class="btn" onClick=${() => folderInput.current.click()}>Choose folder</button>
             </div>`}
       </div>
+
+      ${manifest && !loaded && html`<${ManifestHelp} manifest=${manifest} />`}
 
       ${error && html`<div class="notice notice-error" role="alert"><${Icon} name="warningCircle" size=${16} /><span>${error}</span></div>`}
 

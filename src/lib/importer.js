@@ -10,6 +10,7 @@ export function emptyData() {
     artifacts: [],
     reflections: [],
     designChats: [],
+    manifest: null, // a download list the user dropped instead of the export (never persisted)
     log: [], // [{path, kind, count, note}]
   };
 }
@@ -25,7 +26,8 @@ const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
 /**
  * Identify what a parsed JSON document is, by shape first and file name second.
  * Returns 'conversations' | 'project' | 'projects' | 'memory' | 'reflections' |
- *         'designChat' | 'artifact' | 'ignored' | 'unknown'.
+ *         'designChat' | 'artifact' | 'manifest' | 'ignored' | 'unknown'.
+ * 'manifest' is the small download list Claude sometimes sends first: links to the real zips, no data.
  * 'ignored' covers account files (users, login history) that hold personal data
  * the viewer has no reason to load.
  */
@@ -41,6 +43,7 @@ export function classify(json, path = '') {
     return 'unknown';
   }
   if (!isObj(json)) return 'unknown';
+  if (Array.isArray(json.data_files) && json.data_files.some((f) => isObj(f) && 'export_url' in f)) return 'manifest';
   if (Array.isArray(json.chat_messages)) return 'conversations'; // a single chat
   if (Array.isArray(json.docs) && ('prompt_template' in json || 'is_starter_project' in json)) return 'project';
   if ('conversations_memory' in json || 'project_memories' in json) return 'memory';
@@ -127,6 +130,33 @@ export function normalizeProject(raw) {
       filename: d.filename || 'Untitled',
       content: d.content || '',
       created_at: d.created_at || '',
+    })),
+  };
+}
+
+const EXPORT_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
+/** Only https links on claude.ai are kept, so a crafted file can never put another address on the page. */
+export function safeExportUrl(value) {
+  try {
+    const u = new URL(String(value));
+    const host = u.hostname.toLowerCase();
+    return u.protocol === 'https:' && (host === 'claude.ai' || host.endsWith('.claude.ai')) ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+
+/** The download list as the UI needs it. The links expire 24 hours after `created_at`. */
+export function normalizeManifest(raw) {
+  const created = Date.parse(raw.created_at);
+  return {
+    created_at: raw.created_at || '',
+    expires_at: Number.isNaN(created) ? null : created + EXPORT_LIFETIME_MS,
+    files: raw.data_files.filter(isObj).map((f) => ({
+      filename: String(f.filename || 'unnamed.zip'),
+      category: String(f.category || ''),
+      url: safeExportUrl(f.export_url),
     })),
   };
 }
@@ -237,6 +267,10 @@ export function ingestText(path, text, data) {
       const id = json.id || p;
       upsertArtifactPiece(data, id, (a) => Object.assign(a, normalizeArtifact(json, id), { page: a.page }));
       return { kind, count: 1 };
+    }
+    case 'manifest': {
+      data.manifest = normalizeManifest(json);
+      return { kind, count: data.manifest.files.length, note: 'A download list, not the export itself' };
     }
     case 'ignored':
       return { kind, count: 0, note: 'Account details are not loaded' };

@@ -62,6 +62,10 @@ already loaded.
 | `feedback-000.zip` | Monthly reflections |
 | `design_chats-000.zip` | Recognised, but the export holds no messages for these |
 
+Sometimes Claude first sends only a small `manifest-....json` download list instead of the data. If you drop that,
+the viewer explains what it is, lists the links (only claude.ai ones, never opened by the viewer or kept in the browser)
+and tells you to download every zip and drop them here. The links expire after 24 hours.
+
 Account files such as `users.json` and `login_history.json` are detected and deliberately never loaded.
 
 Tick **Keep the loaded export in this browser** to store it in IndexedDB so you can skip importing

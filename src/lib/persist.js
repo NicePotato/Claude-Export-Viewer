@@ -23,6 +23,7 @@ async function tx(mode, fn) {
   });
 }
 
-export const saveData = (data) => tx('readwrite', (s) => s.put(data, KEY));
+// The download list holds time-limited links, so it is never written to storage.
+export const saveData = (data) => tx('readwrite', (s) => s.put({ ...data, manifest: null }, KEY));
 export const loadData = () => tx('readonly', (s) => s.get(KEY)).catch(() => undefined);
 export const clearData = () => tx('readwrite', (s) => s.delete(KEY));
