@@ -310,6 +310,16 @@ test('newestFirst sorts by updated_at descending', () => {
   const list = [{ updated_at: '2026-01-01' }, { updated_at: '2026-03-01' }, { updated_at: '2026-02-01' }];
   eq(list.sort(newestFirst).map((x) => x.updated_at), ['2026-03-01', '2026-02-01', '2026-01-01']);
 });
+test('newestFirst compares year and time of day, whatever the timestamp format', () => {
+  const list = [
+    { id: 'old-year', updated_at: '2025-12-31T23:59:59Z' },
+    { id: 'plain', updated_at: '2026-10-05T10:54:59Z' },
+    { id: 'fraction', updated_at: '2026-10-05T10:54:59.5Z' },
+    { id: 'offset', updated_at: '2026-10-05T12:00:00+02:00' },
+    { id: 'bad', updated_at: 'junk' },
+  ];
+  eq(list.toSorted(newestFirst).map((x) => x.id), ['fraction', 'plain', 'offset', 'old-year', 'bad']);
+});
 test('orderGroups: oldest first reverses groups and items, newest first is untouched', () => {
   const g = [{ label: 'New', items: [3, 2] }, { label: 'Old', items: [1, 0] }];
   eq(orderGroups(g, 'new'), g);

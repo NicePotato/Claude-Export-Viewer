@@ -35,9 +35,21 @@ export function chatTitle(chat) {
   return first ? clip(first.text, 60) : 'Untitled chat';
 }
 
-/** Comparator: most recently updated first. Items need an ISO `updated_at`. */
+/** Milliseconds since the epoch for an ISO string; unparseable dates sort as oldest. */
+const stamp = (iso) => {
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? -Infinity : t;
+};
+
+/**
+ * Comparator: most recently updated first. Compares real instants (year, date, time, time zone,
+ * fractional seconds), not the raw strings, which only order correctly when every timestamp
+ * has exactly the same format. Items need an ISO `updated_at`.
+ */
 export function newestFirst(a, b) {
-  return a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0;
+  const x = stamp(a.updated_at);
+  const y = stamp(b.updated_at);
+  return x === y ? 0 : x < y ? 1 : -1;
 }
 
 /**
