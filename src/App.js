@@ -4,6 +4,7 @@ import { Landing } from './components/Landing.js';
 import { Rail, ListPane, VIEWS } from './components/Sidebar.js';
 import { ChatView } from './components/ChatView.js';
 import { ProjectView, MemoryView, ArtifactView, ReflectionView, NoSelection } from './components/Views.js';
+import { ChatPicker } from './components/ProjectLinks.js';
 import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js';
 import { collectDropped } from './lib/files.js';
 import { saveData, loadData, clearData } from './lib/persist.js';
@@ -11,6 +12,7 @@ import { searchChats } from './lib/search.js';
 import { chatTitle, fmtDate, groupByRecency, orderGroups, newestFirst } from './lib/format.js';
 import { readPref, writePref } from './lib/prefs.js';
 import { showsNothing, shownCount, diagnoseEmpty } from './lib/empties.js';
+import { assign, prune, chatsOfProject, groupByProject } from './lib/assignments.js';
 
 const VIEW_IDS = VIEWS.map((v) => v.id);
 
@@ -58,6 +60,9 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [order, setOrder] = useState(() => (readPref('order', 'new') === 'old' ? 'old' : 'new'));
+  const [groupBy, setGroupBy] = useState(() => (readPref('group', 'date') === 'project' ? 'project' : 'date'));
+  const [filed, setFiled] = useState(() => readPref('filed', {}));
+  const [pickerFor, setPickerFor] = useState(null);
   const [railOpen, setRailOpen] = useState(() => readPref('rail', false));
   const addInput = useRef(null);
 
@@ -148,6 +153,13 @@ export function App() {
     };
   }, [handleEntries]);
 
+  const changeGroupBy = (next) => { writePref('group', next); setGroupBy(next); };
+  // Functional update so quick successive clicks never overwrite each other.
+  const fileChat = (chatId, projectId) => setFiled((cur) => {
+    const next = assign(cur, chatId, projectId);
+    writePref('filed', next);
+    return next;
+  });
   const changeOrder = (next) => { writePref('order', next); setOrder(next); };
   const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
 
@@ -184,6 +196,9 @@ export function App() {
     },
     [rev, order],
   );
+  // Which project each chat is filed under (user-made, see lib/assignments.js).
+  const assignments = useMemo(() => prune(filed, data.chats, data.projects), [filed, rev]);
+
   // Artifacts with a readable page come first; the rest only have metadata in the export.
   const artifacts = useMemo(
     () => [...data.artifacts].sort((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
@@ -241,12 +256,18 @@ export function App() {
             items: hits.map((h) => ({ id: h.chat.uuid, title: chatTitle(h.chat), snippet: h.snippet })),
           }];
         } else {
-          groups = orderGroups(groupByRecency(nonEmptyChats, (c) => c.updated_at), order).map((g) => ({
-            label: g.label,
-            items: g.items.map((c) => ({
-              id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.updated_at)}  ${plural(shownCount(c), 'message')}`,
-            })),
-          }));
+          const describe = (c) => {
+            const project = assignments[c.uuid] && projectName.get(assignments[c.uuid]);
+            return `${fmtDate(c.updated_at)}  ${plural(shownCount(c), 'message')}${project && groupBy !== 'project' ? `  ${project}` : ''}`;
+          };
+          const toItem = (c) => ({ id: c.uuid, title: chatTitle(c), meta: describe(c) });
+          groups = groupBy === 'project' && projects.length
+            ? groupByProject(nonEmptyChats, assignments, projects).map((g) => ({
+              label: g.label, items: (order === 'old' ? [...g.items].reverse() : g.items).map(toItem),
+            }))
+            : orderGroups(groupByRecency(nonEmptyChats, (c) => c.updated_at), order).map((g) => ({
+              label: g.label, items: g.items.map(toItem),
+            }));
           if (showEmpty && emptyChats.length) {
             const ordered = order === 'old' ? [...emptyChats].reverse() : emptyChats;
             groups.push({
@@ -255,10 +276,10 @@ export function App() {
             });
           }
         }
-        return { title: 'Chats', count: nonEmptyChats.length, groups, searchable: true, sortable: !query.trim(), emptyText: query ? 'No chats match.' : 'No chats loaded.' };
+        return { title: 'Chats', count: nonEmptyChats.length, groups, searchable: true, sortable: !query.trim(), groupable: projects.length > 0 && !query.trim(), emptyText: query ? 'No chats match.' : 'No chats loaded.' };
       }
     }
-  }, [view, rev, query, showEmpty, order, projectName, memoryItems, emptyChats, nonEmptyChats]);
+  }, [view, rev, query, showEmpty, order, groupBy, projects, assignments, projectName, memoryItems, emptyChats, nonEmptyChats]);
 
   // ---- detail pane --------------------------------------------------------
   const goBack = () => { location.hash = `#/${view}`; };
@@ -267,10 +288,10 @@ export function App() {
   if (id) {
     if (view === 'chats') {
       const chat = data.chats.find((c) => c.uuid === id);
-      if (chat) { hasSelection = true; detail = html`<${ChatView} key=${chat.uuid} chat=${chat} onBack=${goBack} query=${query} />`; }
+      if (chat) { hasSelection = true; detail = html`<${ChatView} key=${chat.uuid} chat=${chat} onBack=${goBack} query=${query} projects=${projects} projectId=${assignments[chat.uuid] || null} onAssign=${fileChat} />`; }
     } else if (view === 'projects') {
       const p = data.projects.find((x) => x.uuid === id);
-      if (p) { hasSelection = true; detail = html`<${ProjectView} key=${p.uuid} project=${p} memory=${data.memory.perProject[p.uuid]} onBack=${goBack} />`; }
+      if (p) { hasSelection = true; detail = html`<${ProjectView} key=${p.uuid} project=${p} memory=${data.memory.perProject[p.uuid]} chats=${chatsOfProject(assignments, nonEmptyChats, p.uuid)} onPickChats=${() => setPickerFor(p.uuid)} onBack=${goBack} />`; }
     } else if (view === 'memory') {
       let title = '';
       let text = '';
@@ -319,12 +340,17 @@ export function App() {
           title=${list.title} count=${list.count} groups=${list.groups} selectedId=${id} view=${view}
           query=${query} onQuery=${setQuery} searchable=${list.searchable} footer=${footer} emptyText=${list.emptyText}
           order=${order} onOrder=${list.sortable ? changeOrder : null}
+          groupBy=${groupBy} onGroupBy=${list.groupable ? changeGroupBy : null}
         />
         <main class="main">${detail}</main>`}
     ${busy && html`<div class="toast" role="status"><span class="spinner" aria-hidden="true"></span>${progress || 'Working'}</div>`}
     ${error && html`<div class="toast toast-error" role="alert">${error}</div>`}
     ${dragging && html`<div class="drop-overlay">Drop to add to this export</div>`}
     ${logOpen && html`<${LogDialog} data=${data} onClose=${() => setLogOpen(false)} />`}
+    ${pickerFor && projects.some((p) => p.uuid === pickerFor) && html`<${ChatPicker}
+      project=${projects.find((p) => p.uuid === pickerFor)} chats=${nonEmptyChats} assignments=${assignments}
+      projects=${projects} onToggle=${fileChat} onClose=${() => setPickerFor(null)}
+    />`}
     <input ref=${addInput} type="file" multiple accept=".json,.zip,application/json,application/zip" hidden
       onChange=${(e) => { const f = [...e.target.files].map((file) => ({ path: file.name, file })); e.target.value = ''; if (f.length) handleEntries(f); }} />
   </div>`;
