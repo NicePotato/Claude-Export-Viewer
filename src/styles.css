@@ -127,6 +127,15 @@ a { color: inherit; }
 .accepts li { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
 .accepts code { color: var(--text-2); min-width: 22ch; }
 
+/* Summary of what is loaded, shown when the first page is revisited */
+.loaded-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface);
+}
+.loaded-label { margin: 0 0 2px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.loaded-sum { margin: 0; color: var(--text); }
+.loaded-actions { display: flex; gap: 8px; }
+
 .drop-overlay {
   position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
   background: rgba(28, 27, 25, 0.88); color: var(--text); font-size: 16px; pointer-events: none;
@@ -140,6 +149,9 @@ a { color: inherit; }
   transition: grid-template-columns 220ms var(--ease);
 }
 .app.rail-open { --rail-w: 220px; }
+.app.is-home { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+.main-home { overflow-y: auto; }
+.main-home .landing { flex: 1; min-height: 100%; }
 
 .rail {
   background: var(--bg-rail); border-right: 1px solid var(--line); min-width: 0; overflow: hidden;
@@ -389,7 +401,8 @@ details[open] > summary > .chev { transform: rotate(90deg); }
   }
   .list, .main { grid-row: 2; grid-column: 1; }
   .app.has-selection .list { display: none; }
-  .app:not(.has-selection) .main { display: none; }
+  .app:not(.has-selection):not(.is-home) .main { display: none; }
+  .app.is-home { grid-template-columns: 1fr; }
   .list { border-right: 0; }
   .back { display: inline-grid; }
   .pane-head { padding: 10px 12px; }

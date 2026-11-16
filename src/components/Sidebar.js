@@ -30,6 +30,10 @@ export function Rail({ view, counts, onAdd, onLog, onForget, canForget, open, on
         <${Icon} name="sidebarSimple" size=${20} />
         <span class="rail-label">${open ? 'Collapse' : 'Expand'}</span>
       </button>
+      <${RailItem}
+        icon="house" label="Start page" title="Start page"
+        attrs=${{ href: '#/home', 'aria-current': view === 'home' ? 'page' : undefined }}
+      />
       ${VIEWS.map((v) => html`<${RailItem}
         key=${v.id} icon=${v.icon} label=${v.label} count=${counts[v.id] || 0}
         empty=${!counts[v.id]} title=${`${v.label} (${counts[v.id] || 0})`}

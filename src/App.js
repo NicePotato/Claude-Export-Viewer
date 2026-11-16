@@ -16,7 +16,7 @@ const VIEW_IDS = VIEWS.map((v) => v.id);
 
 function parseHash() {
   const parts = location.hash.replace(/^#\/?/, '').split('/');
-  const view = VIEW_IDS.includes(parts[0]) ? parts[0] : 'chats';
+  const view = parts[0] === 'home' || VIEW_IDS.includes(parts[0]) ? parts[0] : 'chats';
   let id = null;
   if (parts[1]) {
     try { id = decodeURIComponent(parts[1]); } catch { id = parts[1]; }
@@ -152,7 +152,10 @@ export function App() {
   const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
 
   const forget = async () => {
-    if (!confirm('Remove the stored export from this browser? Your original files are not touched.')) return;
+    const msg = remember
+      ? 'Remove the loaded export from this page and from this browser? Your original files are not touched.'
+      : 'Remove the loaded export from this page? Your original files are not touched.';
+    if (!confirm(msg)) return;
     await clearData().catch(() => {});
     dataRef.current = emptyData();
     setRemember(false);
@@ -301,17 +304,23 @@ export function App() {
       </button>`
     : null;
 
-  return html`<div class=${`app ${hasSelection ? 'has-selection' : ''} ${railOpen ? 'rail-open' : ''}`}>
+  return html`<div class=${`app ${hasSelection ? 'has-selection' : ''} ${view === 'home' ? 'is-home' : ''} ${railOpen ? 'rail-open' : ''}`}>
     <${Rail}
       view=${view} counts=${counts} canForget=${remember} open=${railOpen} onToggle=${toggleRail}
       onAdd=${() => addInput.current.click()} onLog=${() => setLogOpen(true)} onForget=${forget}
     />
-    <${ListPane}
-      title=${list.title} count=${list.count} groups=${list.groups} selectedId=${id} view=${view}
-      query=${query} onQuery=${setQuery} searchable=${list.searchable} footer=${footer} emptyText=${list.emptyText}
-      order=${order} onOrder=${list.sortable ? changeOrder : null}
-    />
-    <main class="main">${detail}</main>
+    ${view === 'home'
+      ? html`<main class="main main-home"><${Landing}
+          onEntries=${handleEntries} busy=${busy} progress=${progress} error=${error}
+          remember=${remember} setRemember=${setRemember}
+          loaded=${summarize(data)} onOpen=${() => { location.hash = '#/chats'; }} onClear=${forget}
+        /></main>`
+      : html`<${ListPane}
+          title=${list.title} count=${list.count} groups=${list.groups} selectedId=${id} view=${view}
+          query=${query} onQuery=${setQuery} searchable=${list.searchable} footer=${footer} emptyText=${list.emptyText}
+          order=${order} onOrder=${list.sortable ? changeOrder : null}
+        />
+        <main class="main">${detail}</main>`}
     ${busy && html`<div class="toast" role="status"><span class="spinner" aria-hidden="true"></span>${progress || 'Working'}</div>`}
     ${error && html`<div class="toast toast-error" role="alert">${error}</div>`}
     ${dragging && html`<div class="drop-overlay">Drop to add to this export</div>`}
