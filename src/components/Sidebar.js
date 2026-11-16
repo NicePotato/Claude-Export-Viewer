@@ -9,22 +9,37 @@ export const VIEWS = [
   { id: 'reflections', label: 'Reflections', icon: 'lightbulb' },
 ];
 
-export function Rail({ view, counts, onAdd, onLog, onForget, canForget }) {
-  return html`<nav class="rail" aria-label="Sections">
+/** One rail entry. The label is always in the DOM for screen readers; CSS hides it when collapsed. */
+function RailItem({ icon, label, count, title, empty, attrs }) {
+  const Tag = attrs.href ? 'a' : 'button';
+  return html`<${Tag} class=${`rail-btn ${empty ? 'is-empty' : ''}`} title=${title || label} ...${attrs}>
+    <${Icon} name=${icon} size=${20} />
+    <span class="rail-label">${label}</span>
+    ${count !== undefined && html`<span class="rail-count">${count}</span>`}
+  <//>`;
+}
+
+export function Rail({ view, counts, onAdd, onLog, onForget, canForget, open, onToggle }) {
+  return html`<nav class=${`rail ${open ? 'is-open' : ''}`} aria-label="Sections">
     <div class="rail-top">
-      ${VIEWS.map((v) => html`<a
-        key=${v.id}
-        class=${`rail-btn ${counts[v.id] ? '' : 'is-empty'}`}
-        href=${`#/${v.id}`}
-        aria-current=${view === v.id ? 'page' : undefined}
-        aria-label=${`${v.label}, ${counts[v.id] || 0}`}
-        title=${`${v.label} (${counts[v.id] || 0})`}
-      ><${Icon} name=${v.icon} size=${20} /></a>`)}
+      <button
+        type="button" class="rail-btn rail-toggle" onClick=${onToggle}
+        aria-expanded=${open ? 'true' : 'false'}
+        title=${open ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
+        <${Icon} name="sidebarSimple" size=${20} />
+        <span class="rail-label">${open ? 'Collapse' : 'Expand'}</span>
+      </button>
+      ${VIEWS.map((v) => html`<${RailItem}
+        key=${v.id} icon=${v.icon} label=${v.label} count=${counts[v.id] || 0}
+        empty=${!counts[v.id]} title=${`${v.label} (${counts[v.id] || 0})`}
+        attrs=${{ href: `#/${v.id}`, 'aria-current': view === v.id ? 'page' : undefined }}
+      />`)}
     </div>
     <div class="rail-bottom">
-      <button type="button" class="rail-btn" onClick=${onAdd} aria-label="Add files" title="Add files"><${Icon} name="plus" size=${20} /></button>
-      <button type="button" class="rail-btn" onClick=${onLog} aria-label="Import log" title="Import log"><${Icon} name="fileText" size=${20} /></button>
-      ${canForget && html`<button type="button" class="rail-btn" onClick=${onForget} aria-label="Forget stored data" title="Forget stored data"><${Icon} name="trash" size=${20} /></button>`}
+      <${RailItem} icon="plus" label="Add files" attrs=${{ type: 'button', onClick: onAdd }} />
+      <${RailItem} icon="fileText" label="Import log" attrs=${{ type: 'button', onClick: onLog }} />
+      ${canForget && html`<${RailItem} icon="trash" label="Forget stored data" attrs=${{ type: 'button', onClick: onForget }} />`}
     </div>
   </nav>`;
 }
