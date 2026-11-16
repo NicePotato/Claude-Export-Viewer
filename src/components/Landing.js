@@ -2,22 +2,24 @@ import { html, useRef } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { fromInput } from '../lib/files.js';
 import { ManifestHelp } from './ManifestHelp.js';
+import { LanguageSelect } from './LanguageMenu.js';
+import { t } from '../lib/i18n.js';
 
 const ACCEPTED = [
-  ['conversations.json', 'Chats'],
-  ['conversations-XXX.zip', 'Chats, zipped'],
-  ['projects-XXX.zip', 'Projects and their documents'],
-  ['memories-XXX.zip', 'Memory'],
-  ['frames-XXX.zip', 'Artifacts and pages'],
-  ['feedback-XXX.zip', 'Reflections'],
-  ['design_chats-XXX.zip', 'Design chats'],
+  ['conversations.json', 'acc.conversations'],
+  ['conversations-XXX.zip', 'acc.conversationsZip'],
+  ['projects-XXX.zip', 'acc.projects'],
+  ['memories-XXX.zip', 'acc.memories'],
+  ['frames-XXX.zip', 'acc.frames'],
+  ['feedback-XXX.zip', 'acc.feedback'],
+  ['design_chats-XXX.zip', 'acc.design'],
 ];
 
 /**
  * First page. Before anything is loaded it is the only page. Afterwards it stays reachable from the
  * sidebar (`loaded` is a summary string then) to add more files, open the viewer or clear the data.
  */
-export function Landing({ onEntries, busy, progress, error, remember, setRemember, loaded, onOpen, onClear, manifest }) {
+export function Landing({ onEntries, busy, progress, error, remember, setRemember, loaded, onOpen, onClear, manifest, onLang }) {
   const fileInput = useRef(null);
   const folderInput = useRef(null);
 
@@ -29,30 +31,31 @@ export function Landing({ onEntries, busy, progress, error, remember, setRemembe
 
   return html`<main class="landing">
     <div class="landing-inner">
-      <h1>Claude export viewer</h1>
-      <p class="lede">Read your exported chats the way you wrote them. Everything stays in this browser tab. Nothing is uploaded.</p>
+      <div class="landing-lang"><${LanguageSelect} onChange=${onLang} /></div>
+      <h1>${t('land.title')}</h1>
+      <p class="lede">${t('land.lede')}</p>
 
       ${loaded && html`<div class="loaded-card">
         <div>
-          <p class="loaded-label">Loaded now</p>
+          <p class="loaded-label">${t('land.loadedNow')}</p>
           <p class="loaded-sum">${loaded}</p>
         </div>
         <div class="loaded-actions">
-          <button type="button" class="btn btn-primary" onClick=${onOpen}>Open viewer</button>
-          <button type="button" class="btn" onClick=${onClear}>Clear</button>
+          <button type="button" class="btn btn-primary" onClick=${onOpen}>${t('land.open')}</button>
+          <button type="button" class="btn" onClick=${onClear}>${t('land.clear')}</button>
         </div>
       </div>`}
 
       <div class=${`drop ${busy ? 'is-busy' : ''}`} aria-live="polite">
         ${busy
-          ? html`<div class="drop-busy"><span class="spinner" aria-hidden="true"></span><span>${progress || 'Working'}</span></div>`
+          ? html`<div class="drop-busy"><span class="spinner" aria-hidden="true"></span><span>${progress || t('working')}</span></div>`
           : html`
             <${Icon} name="uploadSimple" size=${22} />
-            <p class="drop-title">${loaded ? 'Drop more files or a folder here' : 'Drop files or a folder here'}</p>
-            <p class="drop-sub">${loaded ? 'New files are merged into what is already loaded.' : 'A single conversations.json works. So does any mix of the export zips.'}</p>
+            <p class="drop-title">${loaded ? t('land.dropMore') : t('land.drop')}</p>
+            <p class="drop-sub">${loaded ? t('land.mergeNote') : t('land.dropSub')}</p>
             <div class="drop-actions">
-              <button type="button" class="btn btn-primary" onClick=${() => fileInput.current.click()}>Choose files</button>
-              <button type="button" class="btn" onClick=${() => folderInput.current.click()}>Choose folder</button>
+              <button type="button" class="btn btn-primary" onClick=${() => fileInput.current.click()}>${t('land.chooseFiles')}</button>
+              <button type="button" class="btn" onClick=${() => folderInput.current.click()}>${t('land.chooseFolder')}</button>
             </div>`}
       </div>
 
@@ -62,15 +65,15 @@ export function Landing({ onEntries, busy, progress, error, remember, setRemembe
 
       <label class="check">
         <input type="checkbox" checked=${remember} onChange=${(e) => setRemember(e.target.checked)} />
-        <span>Keep the loaded export in this browser so I do not have to drop it again</span>
+        <span>${t('land.keep')}</span>
       </label>
 
       <section class="accepts">
-        <h2>Accepted files</h2>
+        <h2>${t('land.accepted')}</h2>
         <ul>
-          ${ACCEPTED.map(([name, what]) => html`<li key=${name}><code>${name}</code><span>${what}</span></li>`)}
+          ${ACCEPTED.map(([name, what]) => html`<li key=${name}><code>${name}</code><span>${t(what)}</span></li>`)}
         </ul>
-        <p class="fine">Account files (users, login history) are ignored on purpose.</p>
+        <p class="fine">${t('land.ignored')}</p>
       </section>
 
       <input ref=${fileInput} type="file" multiple accept=".json,.zip,application/json,application/zip" hidden onChange=${onPick} />

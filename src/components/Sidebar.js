@@ -1,49 +1,52 @@
 import { html, useState, useEffect } from '../lib/ui.js';
 import { Icon } from './Icon.js';
+import { t, getLang } from '../lib/i18n.js';
 
+// `label` is the translation key; use viewLabel() to show it.
 export const VIEWS = [
-  { id: 'chats', label: 'Chats', icon: 'chatsCircle' },
-  { id: 'projects', label: 'Projects', icon: 'folderSimple' },
-  { id: 'memory', label: 'Memory', icon: 'brain' },
-  { id: 'artifacts', label: 'Artifacts', icon: 'cube' },
-  { id: 'reflections', label: 'Reflections', icon: 'lightbulb' },
+  { id: 'chats', label: 'view.chats', icon: 'chatsCircle' },
+  { id: 'projects', label: 'view.projects', icon: 'folderSimple' },
+  { id: 'memory', label: 'view.memory', icon: 'brain' },
+  { id: 'artifacts', label: 'view.artifacts', icon: 'cube' },
+  { id: 'reflections', label: 'view.reflections', icon: 'lightbulb' },
 ];
 
 /** One rail entry. The label is always in the DOM for screen readers; CSS hides it when collapsed. */
-function RailItem({ icon, label, count, title, empty, attrs }) {
+function RailItem({ icon, glyph, label, count, title, empty, attrs }) {
   const Tag = attrs.href ? 'a' : 'button';
   return html`<${Tag} class=${`rail-btn ${empty ? 'is-empty' : ''}`} title=${title || label} ...${attrs}>
-    <${Icon} name=${icon} size=${20} />
+    ${glyph ? html`<span class="rail-glyph" aria-hidden="true">${glyph}</span>` : html`<${Icon} name=${icon} size=${20} />`}
     <span class="rail-label">${label}</span>
     ${count !== undefined && html`<span class="rail-count">${count}</span>`}
   <//>`;
 }
 
-export function Rail({ view, counts, onAdd, onLog, onForget, canForget, open, onToggle }) {
-  return html`<nav class=${`rail ${open ? 'is-open' : ''}`} aria-label="Sections">
+export function Rail({ view, counts, onAdd, onLog, onForget, onLanguage, canForget, open, onToggle }) {
+  return html`<nav class=${`rail ${open ? 'is-open' : ''}`} aria-label=${t('rail.sections')}>
     <div class="rail-top">
       <button
         type="button" class="rail-btn rail-toggle" onClick=${onToggle}
         aria-expanded=${open ? 'true' : 'false'}
-        title=${open ? 'Collapse sidebar' : 'Expand sidebar'}
+        title=${open ? t('rail.collapseSidebar') : t('rail.expandSidebar')}
       >
         <${Icon} name="sidebarSimple" size=${20} />
-        <span class="rail-label">${open ? 'Collapse' : 'Expand'}</span>
+        <span class="rail-label">${open ? t('rail.collapse') : t('rail.expand')}</span>
       </button>
       <${RailItem}
-        icon="house" label="Start page" title="Start page"
+        icon="house" label=${t('rail.start')} title=${t('rail.start')}
         attrs=${{ href: '#/home', 'aria-current': view === 'home' ? 'page' : undefined }}
       />
       ${VIEWS.map((v) => html`<${RailItem}
-        key=${v.id} icon=${v.icon} label=${v.label} count=${counts[v.id] || 0}
-        empty=${!counts[v.id]} title=${`${v.label} (${counts[v.id] || 0})`}
+        key=${v.id} icon=${v.icon} label=${t(v.label)} count=${counts[v.id] || 0}
+        empty=${!counts[v.id]} title=${`${t(v.label)} (${counts[v.id] || 0})`}
         attrs=${{ href: `#/${v.id}`, 'aria-current': view === v.id ? 'page' : undefined }}
       />`)}
     </div>
     <div class="rail-bottom">
-      <${RailItem} icon="plus" label="Add files" attrs=${{ type: 'button', onClick: onAdd }} />
-      <${RailItem} icon="fileText" label="Import log" attrs=${{ type: 'button', onClick: onLog }} />
-      ${canForget && html`<${RailItem} icon="trash" label="Forget stored data" attrs=${{ type: 'button', onClick: onForget }} />`}
+      <${RailItem} icon="plus" label=${t('rail.add')} attrs=${{ type: 'button', onClick: onAdd }} />
+      <${RailItem} icon="fileText" label=${t('rail.log')} attrs=${{ type: 'button', onClick: onLog }} />
+      <${RailItem} glyph=${getLang().toUpperCase()} label=${t('rail.language')} attrs=${{ type: 'button', onClick: onLanguage }} />
+      ${canForget && html`<${RailItem} icon="trash" label=${t('rail.forget')} attrs=${{ type: 'button', onClick: onForget }} />`}
     </div>
   </nav>`;
 }
@@ -75,8 +78,8 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
       <span class="count">${count}</span>
       ${onOrder && html`<button
         type="button" class="icon-btn sort-btn" onClick=${() => onOrder(order === 'old' ? 'new' : 'old')}
-        aria-label=${order === 'old' ? 'Oldest first. Switch to newest first' : 'Newest first. Switch to oldest first'}
-        title=${order === 'old' ? 'Oldest first' : 'Newest first'}
+        aria-label=${order === 'old' ? t('list.switchToNewest') : t('list.switchToOldest')}
+        title=${order === 'old' ? t('list.oldestFirst') : t('list.newestFirst')}
       ><${Icon} name=${order === 'old' ? 'sortAscending' : 'sortDescending'} size=${16} /></button>`}
     </header>
     ${searchable && html`<div class="search">
@@ -85,15 +88,15 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
         type="search"
         value=${draft}
         onInput=${(e) => setDraft(e.target.value)}
-        placeholder="Search chats (press /)"
-        aria-label="Search chats"
+        placeholder=${t('list.search')}
+        aria-label=${t('list.searchLabel')}
         spellcheck="false"
       />
-      ${draft && html`<button type="button" class="icon-btn" aria-label="Clear search" onClick=${() => setDraft('')}><${Icon} name="x" size=${12} /></button>`}
+      ${draft && html`<button type="button" class="icon-btn" aria-label=${t('list.clearSearch')} onClick=${() => setDraft('')}><${Icon} name="x" size=${12} /></button>`}
     </div>`}
-    ${onGroupBy && html`<div class="seg" role="group" aria-label="Group chats by">
-      <button type="button" aria-pressed=${groupBy !== 'project'} onClick=${() => onGroupBy('date')}>By date</button>
-      <button type="button" aria-pressed=${groupBy === 'project'} onClick=${() => onGroupBy('project')}>By project</button>
+    ${onGroupBy && html`<div class="seg" role="group" aria-label=${t('list.groupBy')}>
+      <button type="button" aria-pressed=${groupBy !== 'project'} onClick=${() => onGroupBy('date')}>${t('list.byDate')}</button>
+      <button type="button" aria-pressed=${groupBy === 'project'} onClick=${() => onGroupBy('project')}>${t('list.byProject')}</button>
     </div>`}
     <div class="items">
       ${groups.map((g) => html`<section class="group" key=${g.label}>
@@ -111,7 +114,7 @@ export function ListPane({ title, count, groups, selectedId, view, query, onQuer
             : it.meta && html`<span class="item-meta">${it.meta}</span>`}
         </a>`)}
       </section>`)}
-      ${total === 0 && html`<div class="list-empty">${emptyText || 'Nothing here.'}</div>`}
+      ${total === 0 && html`<div class="list-empty">${emptyText || t('list.nothing')}</div>`}
     </div>
     ${footer && html`<footer class="list-foot">${footer}</footer>`}
   </aside>`;

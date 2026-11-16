@@ -2,6 +2,7 @@
 // those chats and says what the export file actually contains for them, without guessing why.
 import { buildTree, resolvePath, toViewList } from './tree.js';
 import { fmtDateTime } from './format.js';
+import { t, tn } from './i18n.js';
 
 const cache = new WeakMap();
 
@@ -17,8 +18,6 @@ export function shownCount(chat) {
 
 /** True when opening the chat would show no messages at all. */
 export const showsNothing = (chat) => shownCount(chat) === 0;
-
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 function facts(chat) {
   const msgs = chat.messages;
@@ -48,33 +47,30 @@ export function diagnoseEmpty(chat) {
 
   if (!msgs.length) {
     return {
-      code: 'no-messages', short: 'No messages in export', facts: f,
-      title: 'The export has no messages for this chat',
-      detail: 'The chat is listed with its dates, but its message list is empty in the file.',
+      code: 'no-messages', short: t('emp.noMsgs.short'), facts: f,
+      title: t('emp.noMsgs.title'),
+      detail: t('emp.noMsgs.detail'),
     };
   }
 
   const known = msgs.every((m) => m.raw);
   if (known && msgs.every((m) => m.raw.blocks === 0 && !m.raw.flatText)) {
     return {
-      code: 'blank-bodies', short: 'Message text missing in export', facts: f,
-      title: 'The messages were exported without their text',
-      detail: `The file records ${plural(f.total, 'message')} (${f.human} from you, ${f.assistant} from Claude) with their senders and times, `
-        + 'but every message body is empty. The text is not in the export, so it cannot be shown here. '
-        + 'If the chat still exists on claude.ai, the text can only be read there.',
+      code: 'blank-bodies', short: t('emp.blank.short'), facts: f,
+      title: t('emp.blank.title'),
+      detail: t('emp.blank.detail', { messages: tn('message', f.total), human: f.human, assistant: f.assistant }),
     };
   }
   if (known && msgs.some((m) => m.raw.unsupported > 0)) {
     return {
-      code: 'unsupported-only', short: 'Only unsupported content', facts: f,
-      title: 'Only content the export cannot represent',
-      detail: 'The only text in this chat is the stand-in Claude writes for blocks it cannot export '
-        + '("This block is not supported on your current device yet"), for example interactive content.',
+      code: 'unsupported-only', short: t('emp.unsup.short'), facts: f,
+      title: t('emp.unsup.title'),
+      detail: t('emp.unsup.detail'),
     };
   }
   return {
-    code: 'no-content', short: 'No readable content', facts: f,
-    title: 'Nothing readable in this chat',
-    detail: `None of its ${plural(f.total, 'message')} carries text, attachments or tool activity that can be displayed.`,
+    code: 'no-content', short: t('emp.none.short'), facts: f,
+    title: t('emp.none.title'),
+    detail: t('emp.none.detail', { messages: tn('message', f.total) }),
   };
 }

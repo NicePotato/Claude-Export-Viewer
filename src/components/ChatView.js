@@ -9,6 +9,7 @@ import { diagnoseEmpty } from '../lib/empties.js';
 import { downloadBlob, textBlob } from '../lib/download.js';
 import { useDismissDetails } from '../lib/hooks.js';
 import { ProjectMenu } from './ProjectLinks.js';
+import { t, tn, getLang } from '../lib/i18n.js';
 
 const MAX_HITS = 500;
 const canHighlight = () => typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
@@ -34,13 +35,13 @@ function findRanges(root, q) {
 /** Shown in place of the messages when the export holds nothing readable for a chat. */
 function EmptyNotice({ diagnosis: d }) {
   const f = d.facts;
-  return html`<section class="empty-note" aria-label="Why this chat is empty">
+  return html`<section class="empty-note" aria-label=${t('chat.emptyWhy')}>
     <h2><${Icon} name="eyeSlash" size=${16} />${d.title}</h2>
     <p>${d.detail}</p>
     ${f.total > 0 && html`<dl>
-      <div><dt>Messages in export</dt><dd>${f.total}</dd></div>
-      ${f.first && html`<div><dt>First message</dt><dd>${f.first}</dd></div>`}
-      ${f.last && f.last !== f.first && html`<div><dt>Last message</dt><dd>${f.last}</dd></div>`}
+      <div><dt>${t('chat.msgsInExport')}</dt><dd>${f.total}</dd></div>
+      ${f.first && html`<div><dt>${t('chat.first')}</dt><dd>${f.first}</dd></div>`}
+      ${f.last && f.last !== f.first && html`<div><dt>${t('chat.last')}</dt><dd>${f.last}</dd></div>`}
     </dl>`}
   </section>`;
 }
@@ -54,23 +55,23 @@ function ExportMenu({ chat, items }) {
   const md = () => chatToMarkdown(chat, items, { steps });
   const download = () => {
     downloadBlob(textBlob(md()), exportFileName(chat));
-    flash('Saved');
+    flash(t('chat.saved'));
   };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(md()); flash('Copied'); } catch { flash('Copy blocked'); }
+    try { await navigator.clipboard.writeText(md()); flash(t('chat.copied')); } catch { flash(t('chat.copyBlocked')); }
   };
 
   useDismissDetails(ref);
 
   return html`<details class="menu" ref=${ref}>
-    <summary class="btn">Export<${Icon} name="caretDown" size=${12} /></summary>
+    <summary class="btn">${t('chat.export')}<${Icon} name="caretDown" size=${12} /></summary>
     <div class="menu-panel">
       <label class="check check-sm">
         <input type="checkbox" checked=${steps} onChange=${(e) => setSteps(e.target.checked)} />
-        <span>Include thinking and tool calls</span>
+        <span>${t('chat.includeSteps')}</span>
       </label>
-      <button type="button" class="btn btn-primary" onClick=${download}>Download .md</button>
-      <button type="button" class="btn" onClick=${copy}>Copy as Markdown</button>
+      <button type="button" class="btn btn-primary" onClick=${download}>${t('chat.downloadMd')}</button>
+      <button type="button" class="btn" onClick=${copy}>${t('chat.copyMd')}</button>
       <div class="menu-note" role="status">${note}</div>
     </div>
   </details>`;
@@ -82,7 +83,8 @@ export function ChatView({ chat, onBack, query = '', projects = [], projectId = 
   const path = useMemo(() => resolvePath(tree, choice), [tree, choice]);
   const items = useMemo(() => toViewList(path), [path]);
   const forks = useMemo(() => countForks(tree), [tree]);
-  const empty = useMemo(() => diagnoseEmpty(chat), [chat]);
+  const lang = getLang();
+  const empty = useMemo(() => diagnoseEmpty(chat), [chat, lang]);
   const scroller = useRef(null);
   const column = useRef(null);
   const ranges = useRef([]);
@@ -123,30 +125,30 @@ export function ChatView({ chat, onBack, query = '', projects = [], projectId = 
 
   return html`<section class="pane">
     <header class="pane-head">
-      <button type="button" class="icon-btn back" onClick=${onBack} aria-label="Back to list"><${Icon} name="caretLeft" size=${16} /></button>
+      <button type="button" class="icon-btn back" onClick=${onBack} aria-label=${t('chat.back')}><${Icon} name="caretLeft" size=${16} /></button>
       <div class="pane-title">
         <h1>${chatTitle(chat)}</h1>
         <div class="pane-meta">
           ${empty
-            ? html`<span class="tag"><${Icon} name="eyeSlash" size=${12} />Empty chat</span>`
-            : html`<span>${items.length} ${items.length === 1 ? 'message' : 'messages'}</span>`}
+            ? html`<span class="tag"><${Icon} name="eyeSlash" size=${12} />${t('chat.emptyTag')}</span>`
+            : html`<span>${tn('message', items.length)}</span>`}
           <span>${fmtDate(chat.created_at)}</span>
-          ${forks > 0 && html`<span class="tag"><${Icon} name="gitBranch" size=${12} />${forks} ${forks === 1 ? 'branch point' : 'branch points'}</span>`}
+          ${forks > 0 && html`<span class="tag"><${Icon} name="gitBranch" size=${12} />${tn('branchPoint', forks)}</span>`}
         </div>
       </div>
-      ${searching && html`<div class="hit-nav" role="group" aria-label="Search matches in this chat">
-        <span class="hit-count">${hits ? `${cur + 1} / ${hits}${hits >= MAX_HITS ? '+' : ''}` : 'no matches here'}</span>
-        <button type="button" class="icon-btn" disabled=${!hits} onClick=${() => focusHit(cur - 1)} aria-label="Previous match"><${Icon} name="caretLeft" size=${14} /></button>
-        <button type="button" class="icon-btn" disabled=${!hits} onClick=${() => focusHit(cur + 1)} aria-label="Next match"><${Icon} name="caretRight" size=${14} /></button>
+      ${searching && html`<div class="hit-nav" role="group" aria-label=${t('chat.hitsLabel')}>
+        <span class="hit-count">${hits ? `${cur + 1} / ${hits}${hits >= MAX_HITS ? '+' : ''}` : t('chat.noHits')}</span>
+        <button type="button" class="icon-btn" disabled=${!hits} onClick=${() => focusHit(cur - 1)} aria-label=${t('chat.prevMatch')}><${Icon} name="caretLeft" size=${14} /></button>
+        <button type="button" class="icon-btn" disabled=${!hits} onClick=${() => focusHit(cur + 1)} aria-label=${t('chat.nextMatch')}><${Icon} name="caretRight" size=${14} /></button>
       </div>`}
-      ${!empty && items.length > 12 && html`<button type="button" class="btn" onClick=${toEnd}>Latest</button>`}
+      ${!empty && items.length > 12 && html`<button type="button" class="btn" onClick=${toEnd}>${t('chat.latest')}</button>`}
       ${!empty && projects.length > 0 && onAssign && html`<${ProjectMenu} projects=${projects} value=${projectId} onChange=${(id) => onAssign(chat.uuid, id)} />`}
       ${!empty && html`<${ExportMenu} chat=${chat} items=${items} />`}
     </header>
     <div class="scroll" ref=${scroller}>
       <div class="column" ref=${column}>
         ${chat.summary && html`<details class="summary">
-          <summary>Summary<${Icon} name="caretRight" size=${12} class="chev" /></summary>
+          <summary>${t('chat.summary')}<${Icon} name="caretRight" size=${12} class="chev" /></summary>
           <${Markdown} text=${chat.summary} />
         </details>`}
         ${items.map((item) => html`<${Message} key=${item.entry.msg.uuid} item=${item} onPick=${pick} />`)}

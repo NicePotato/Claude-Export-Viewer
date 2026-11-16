@@ -1,6 +1,7 @@
 // Turns whatever the user drops (conversations.json, any of the export zips, a folder)
 // into one normalized ExportData object. Nothing here touches the network.
 import { unzipSync, strFromU8 } from '../../vendor/fflate.js';
+import { t, tn } from './i18n.js';
 
 export function emptyData() {
   return {
@@ -333,13 +334,13 @@ export async function importFiles(entries, data = emptyData(), onProgress = () =
 /** One-line description of what an import found. */
 export function summarize(data) {
   const bits = [];
-  const add = (n, one, many) => { if (n) bits.push(`${n} ${n === 1 ? one : many}`); };
-  add(data.chats.length, 'chat', 'chats');
-  add(data.projects.length, 'project', 'projects');
-  add(data.artifacts.length, 'artifact', 'artifacts');
-  add(data.reflections.length, 'reflection', 'reflections');
-  if (data.memory.global || Object.keys(data.memory.perProject).length || data.memory.files.length) bits.push('memory');
-  return bits.join(', ') || 'nothing recognizable';
+  const add = (n, key) => { if (n) bits.push(tn(key, n)); };
+  add(data.chats.length, 'chat');
+  add(data.projects.length, 'project');
+  add(data.artifacts.length, 'artifact');
+  add(data.reflections.length, 'reflection');
+  if (data.memory.global || Object.keys(data.memory.perProject).length || data.memory.files.length) bits.push(t('sum.memory'));
+  return bits.join(t('sum.sep')) || t('sum.nothing');
 }
 
 export function hasContent(data) {

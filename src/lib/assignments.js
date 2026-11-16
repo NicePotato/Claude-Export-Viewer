@@ -2,6 +2,8 @@
 // chats into projects themselves. An assignment map is { [chatUuid]: projectUuid }, kept in this
 // browser only. All functions are pure and never mutate their input.
 
+import { t } from './i18n.js';
+
 export const NO_PROJECT = 'none';
 
 /** Return a new map with the chat filed under `projectId`, or removed when `projectId` is falsy. */
@@ -35,10 +37,10 @@ export function groupByProject(chats, map, projects) {
   const groups = [];
   for (const p of projects) {
     const items = chatsOfProject(map, chats, p.uuid);
-    if (items.length) groups.push({ id: p.uuid, label: p.name || 'Untitled project', items });
+    if (items.length) groups.push({ id: p.uuid, label: p.name || t('untitledProject'), items });
   }
   const known = new Set(projects.map((p) => p.uuid));
   const loose = chats.filter((c) => !known.has(map[c.uuid]));
-  if (loose.length) groups.push({ id: NO_PROJECT, label: 'No project', items: loose });
+  if (loose.length) groups.push({ id: NO_PROJECT, label: t('noProject'), items: loose });
   return groups;
 }

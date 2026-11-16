@@ -3,6 +3,7 @@
 // invoker, so none of that is written by hand here.
 import { html, useRef, useEffect } from '../lib/ui.js';
 import { Icon } from './Icon.js';
+import { t } from '../lib/i18n.js';
 
 // Press and release both outside the dialog box: a text-selection drag that ends on the
 // backdrop must not dismiss it. Position is tested, not event.target, because the <dialog> is
@@ -40,7 +41,7 @@ export function Modal({ title, onClose, children }) {
   return html`<dialog class="modal" ref=${ref} closedby="any" aria-label=${title} onClose=${onClose}>
     <header>
       <h2>${title}</h2>
-      <button type="button" class="icon-btn" onClick=${() => ref.current.close()} aria-label="Close"><${Icon} name="x" size=${14} /></button>
+      <button type="button" class="icon-btn" onClick=${() => ref.current.close()} aria-label=${t('modal.close')}><${Icon} name="x" size=${14} /></button>
     </header>
     ${children}
   </dialog>`;

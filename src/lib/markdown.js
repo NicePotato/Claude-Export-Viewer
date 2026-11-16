@@ -1,6 +1,7 @@
 // Markdown -> safe HTML. Raw HTML in the source is escaped, remote images are never
 // fetched (the viewer is local-only), links are limited to safe protocols.
 import { Marked } from '../../vendor/marked.js';
+import { t, getLang } from './i18n.js';
 
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -36,7 +37,7 @@ const renderer = {
     const { html, lang: used } = highlight(code, lang);
     return (
       `<div class="code"><div class="code-head"><span class="code-lang">${esc(used || 'text')}</span>` +
-      `<button type="button" class="code-copy" ${COPY_ICON_ATTR}>Copy</button></div>` +
+      `<button type="button" class="code-copy" ${COPY_ICON_ATTR}>${esc(t('md.copy'))}</button></div>` +
       `<pre><code class="hljs">${html}</code></pre></div>`
     );
   },
@@ -49,10 +50,11 @@ const renderer = {
   image(href, title, text) {
     // Never load remote images. Show the alt text and let the user open the link if they want.
     const safe = safeHref(href);
-    const label = esc(text || 'image');
+    const label = esc(text || t('md.image'));
+    const word = esc(t('md.image'));
     return safe
-      ? `<a class="md-image" href="${esc(safe)}" target="_blank" rel="noopener noreferrer nofollow">[image: ${label}]</a>`
-      : `<span class="md-image">[image: ${label}]</span>`;
+      ? `<a class="md-image" href="${esc(safe)}" target="_blank" rel="noopener noreferrer nofollow">[${word}: ${label}]</a>`
+      : `<span class="md-image">[${word}: ${label}]</span>`;
   },
 };
 
@@ -63,10 +65,12 @@ const cache = new Map();
 const CACHE_MAX = 400;
 
 export function renderMarkdown(src) {
-  const key = String(src ?? '');
+  // The language is part of the key: the rendered HTML contains translated button labels.
+  const key = `${getLang()}\u0000${String(src ?? '')}`;
   let out = cache.get(key);
   if (out === undefined) {
-    try { out = marked.parse(key); } catch { out = `<pre>${esc(key)}</pre>`; }
+    const text = String(src ?? '');
+    try { out = marked.parse(text); } catch { out = `<pre>${esc(text)}</pre>`; }
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
     cache.set(key, out);
   }

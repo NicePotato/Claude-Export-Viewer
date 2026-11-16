@@ -1,7 +1,8 @@
 import { html, useState, useRef, useEffect } from '../lib/ui.js';
 import { Icon } from './Icon.js';
+import { t } from '../lib/i18n.js';
 
-export function CopyButton({ text, label = 'Copy message' }) {
+export function CopyButton({ text, label = t('msg.copy') }) {
   const [done, setDone] = useState(false);
   const timer = useRef(0);
   useEffect(() => () => clearTimeout(timer.current), []);

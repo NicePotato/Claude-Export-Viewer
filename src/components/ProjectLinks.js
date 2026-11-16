@@ -4,8 +4,9 @@ import { Icon } from './Icon.js';
 import { Modal } from './Modal.js';
 import { useDismissDetails } from '../lib/hooks.js';
 import { chatTitle, fmtDate } from '../lib/format.js';
+import { t } from '../lib/i18n.js';
 
-const projectLabel = (p) => p.name || 'Untitled project';
+const projectLabel = (p) => p.name || t('untitledProject');
 
 /** Header menu on a chat: pick the project it belongs to. */
 export function ProjectMenu({ projects, value, onChange }) {
@@ -15,18 +16,18 @@ export function ProjectMenu({ projects, value, onChange }) {
   const pick = (id) => { onChange(id); if (ref.current) ref.current.open = false; };
 
   return html`<details class="menu" ref=${ref}>
-    <summary class="btn" title="File this chat in a project">
+    <summary class="btn" title=${t('pl.fileTitle')}>
       <${Icon} name="folderSimple" size=${14} />
-      <span class="btn-label">${current ? projectLabel(current) : 'Project'}</span>
+      <span class="btn-label">${current ? projectLabel(current) : t('pl.project')}</span>
       <${Icon} name="caretDown" size=${12} />
     </summary>
     <div class="menu-panel menu-list" role="menu">
-      <button type="button" role="menuitemradio" aria-checked=${!current} class=${`menu-item ${!current ? 'is-on' : ''}`} onClick=${() => pick(null)}>No project</button>
+      <button type="button" role="menuitemradio" aria-checked=${!current} class=${`menu-item ${!current ? 'is-on' : ''}`} onClick=${() => pick(null)}>${t('noProject')}</button>
       ${projects.map((p) => html`<button
         key=${p.uuid} type="button" role="menuitemradio" aria-checked=${p.uuid === value}
         class=${`menu-item ${p.uuid === value ? 'is-on' : ''}`} onClick=${() => pick(p.uuid)}
       >${projectLabel(p)}</button>`)}
-      <p class="menu-fine">The export does not say which project a chat was in, so you choose. Saved in this browser only.</p>
+      <p class="menu-fine">${t('pl.fine')}</p>
     </div>
   </details>`;
 }
@@ -46,11 +47,11 @@ export function ChatPicker({ project, chats, assignments, projects, onToggle, on
   }, [chats, q]);
   const inProject = chats.filter((c) => assignments[c.uuid] === project.uuid).length;
 
-  return html`<${Modal} title=${`Chats in ${projectLabel(project)}`} onClose=${onClose}>
-      <p class="fine">${inProject} selected. The export does not link chats to projects, so tick the ones that belong here.</p>
+  return html`<${Modal} title=${t('pl.chatsIn', { name: projectLabel(project) })} onClose=${onClose}>
+      <p class="fine">${t('pl.selected', { n: inProject })}</p>
       <div class="search picker-search">
         <${Icon} name="magnifyingGlass" size=${14} />
-        <input type="search" value=${q} onInput=${(e) => setQ(e.target.value)} placeholder="Filter chats" aria-label="Filter chats" spellcheck="false" ref=${box} />
+        <input type="search" value=${q} onInput=${(e) => setQ(e.target.value)} placeholder=${t('pl.filter')} aria-label=${t('pl.filter')} spellcheck="false" ref=${box} />
       </div>
       <ul class="picker">
         ${rows.map((c) => {
@@ -61,7 +62,7 @@ export function ChatPicker({ project, chats, assignments, projects, onToggle, on
             <span class="picker-meta">${at && at !== project.uuid ? nameOf.get(at) || '' : fmtDate(c.updated_at)}</span>
           </label></li>`;
         })}
-        ${!rows.length && html`<li class="muted picker-none">No chats match.</li>`}
+        ${!rows.length && html`<li class="muted picker-none">${t('empty.chatsNoMatch')}</li>`}
       </ul>
   <//>`;
 }
