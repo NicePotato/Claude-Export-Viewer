@@ -5,6 +5,7 @@ import { Rail, ListPane, VIEWS } from './components/Sidebar.js';
 import { ChatView } from './components/ChatView.js';
 import { ProjectView, MemoryView, ArtifactView, ReflectionView, NoSelection } from './components/Views.js';
 import { ChatPicker } from './components/ProjectLinks.js';
+import { Modal } from './components/Modal.js';
 import { projectsToZip } from './lib/projectExport.js';
 import { downloadBlob } from './lib/download.js';
 import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js';
@@ -29,12 +30,7 @@ function parseHash() {
 }
 
 function LogDialog({ data, onClose }) {
-  return html`<div class="modal-backdrop" onClick=${onClose}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Import log" onClick=${(e) => e.stopPropagation()}>
-      <header>
-        <h2>Import log</h2>
-        <button type="button" class="icon-btn" onClick=${onClose} aria-label="Close"><${Icon} name="x" size=${14} /></button>
-      </header>
+  return html`<${Modal} title="Import log" onClose=${onClose}>
       <p class="fine">Loaded: ${summarize(data)}.</p>
       <ul class="log">
         ${data.log.map((l, i) => html`<li key=${i} class=${`log-${l.kind === 'error' ? 'error' : ''}`}>
@@ -44,8 +40,7 @@ function LogDialog({ data, onClose }) {
         </li>`)}
         ${!data.log.length && html`<li class="muted">Nothing imported in this session.</li>`}
       </ul>
-    </div>
-  </div>`;
+  <//>`;
 }
 
 export function App() {
@@ -187,7 +182,7 @@ export function App() {
   // ---- derived data -------------------------------------------------------
   const { view, id } = route;
   // Always newest first here: groupByRecency() needs that, and stored data may have any order.
-  const chatsNewestFirst = useMemo(() => [...data.chats].sort(newestFirst), [rev]);
+  const chatsNewestFirst = useMemo(() => data.chats.toSorted(newestFirst), [rev]);
   // "Empty" means opening the chat would show nothing, not just that it has no messages in the file.
   const nonEmptyChats = useMemo(() => chatsNewestFirst.filter((c) => !showsNothing(c)), [chatsNewestFirst]);
   const emptyChats = useMemo(() => chatsNewestFirst.filter(showsNothing), [chatsNewestFirst]);
@@ -210,7 +205,7 @@ export function App() {
 
   // Artifacts with a readable page come first; the rest only have metadata in the export.
   const artifacts = useMemo(
-    () => [...data.artifacts].sort((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
+    () => data.artifacts.toSorted((a, b) => (Boolean(b.page) - Boolean(a.page)) || (order === 'old' ? -newestFirst(a, b) : newestFirst(a, b))),
     [rev, order],
   );
 
@@ -272,13 +267,13 @@ export function App() {
           const toItem = (c) => ({ id: c.uuid, title: chatTitle(c), meta: describe(c) });
           groups = groupBy === 'project' && projects.length
             ? groupByProject(nonEmptyChats, assignments, projects).map((g) => ({
-              label: g.label, items: (order === 'old' ? [...g.items].reverse() : g.items).map(toItem),
+              label: g.label, items: (order === 'old' ? g.items.toReversed() : g.items).map(toItem),
             }))
             : orderGroups(groupByRecency(nonEmptyChats, (c) => c.updated_at), order).map((g) => ({
               label: g.label, items: g.items.map(toItem),
             }));
           if (showEmpty && emptyChats.length) {
-            const ordered = order === 'old' ? [...emptyChats].reverse() : emptyChats;
+            const ordered = order === 'old' ? emptyChats.toReversed() : emptyChats;
             groups.push({
               label: `Empty chats (${emptyChats.length})`,
               items: ordered.map((c) => ({ id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.created_at)}  ${diagnoseEmpty(c).short}` })),

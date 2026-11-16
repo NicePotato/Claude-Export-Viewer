@@ -105,6 +105,7 @@ The viewer cannot recover text that is not in the export, and it does not guess 
 | Key | Action |
 | --- | --- |
 | `/` | Focus the chat search box |
+| `Esc` | Close the open dialog or menu |
 
 ## Privacy and security
 
@@ -114,6 +115,11 @@ The viewer cannot recover text that is not in the export, and it does not guess 
 - Raw HTML inside messages is escaped, and links are limited to `http`, `https` and `mailto`.
 - Loaded data lives in memory. It is written to IndexedDB only if you tick the keep option.
 - Preferences (sidebar width, sort order, grouping, project filing) are stored in `localStorage`.
+
+## Browser support
+
+A current Chrome, Edge, Firefox or Safari. The app uses native `<dialog>`, `toSorted()` / `toReversed()` and the
+CSS Custom Highlight API. Where a browser lacks `<dialog closedby>`, clicking the backdrop is handled by a small fallback.
 
 ## Limitations
 

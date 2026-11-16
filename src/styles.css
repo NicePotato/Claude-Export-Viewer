@@ -412,8 +412,14 @@ details[open] > summary > .chev { transform: rotate(90deg); }
   font-size: 12.5px; max-width: min(520px, calc(100vw - 32px)); animation: rise 260ms var(--ease);
 }
 .toast-error { color: var(--danger); }
-.modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; padding: 16px; }
-.modal { width: min(720px, 100%); max-height: min(80dvh, 640px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r); padding: 18px 20px; }
+/* Native <dialog>: the browser supplies the top layer, backdrop, focus handling and Escape. */
+.modal {
+  width: min(720px, calc(100% - 32px)); max-height: min(80dvh, 640px); margin: auto; flex-direction: column;
+  background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r); padding: 18px 20px;
+}
+.modal[open] { display: flex; } /* scoped to [open] so a closed dialog stays display: none */
+.modal:modal { overscroll-behavior: contain; } /* scrolling inside never chains to the page behind */
+.modal::backdrop { background: rgba(0, 0, 0, 0.55); overflow: hidden; overscroll-behavior: contain; }
 .modal header { display: flex; justify-content: space-between; align-items: center; }
 .modal h2 { margin: 0; font-size: 15px; }
 .log { list-style: none; margin: 12px 0 0; padding: 0; overflow-y: auto; display: grid; gap: 2px; font-size: 12px; }

@@ -7,6 +7,7 @@ import { chatTitle, fmtDate } from '../lib/format.js';
 import { chatToMarkdown, exportFileName } from '../lib/export.js';
 import { diagnoseEmpty } from '../lib/empties.js';
 import { downloadBlob, textBlob } from '../lib/download.js';
+import { useDismissDetails } from '../lib/hooks.js';
 import { ProjectMenu } from './ProjectLinks.js';
 
 const MAX_HITS = 500;
@@ -59,12 +60,7 @@ function ExportMenu({ chat, items }) {
     try { await navigator.clipboard.writeText(md()); flash('Copied'); } catch { flash('Copy blocked'); }
   };
 
-  // Close when clicking elsewhere.
-  useEffect(() => {
-    const onDown = (e) => { if (ref.current?.open && !ref.current.contains(e.target)) ref.current.open = false; };
-    addEventListener('pointerdown', onDown);
-    return () => removeEventListener('pointerdown', onDown);
-  }, []);
+  useDismissDetails(ref);
 
   return html`<details class="menu" ref=${ref}>
     <summary class="btn">Export<${Icon} name="caretDown" size=${12} /></summary>
