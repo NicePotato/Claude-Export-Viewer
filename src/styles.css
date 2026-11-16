@@ -166,7 +166,9 @@ a { color: inherit; }
 
 /* List column */
 .list { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--bg); }
-.list-head { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 18px 8px; }
+.list-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 8px 18px; min-height: 52px; }
+.list-head h2 { flex: 1; }
+.sort-btn { flex: none; }
 .list-head h2 { margin: 0; font-size: 15px; font-weight: 560; letter-spacing: -0.01em; }
 .count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
 .search {
