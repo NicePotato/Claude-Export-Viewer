@@ -2,9 +2,10 @@
 import { html } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { Markdown } from './Markdown.js';
+import { ProjectExportMenu } from './ProjectExport.js';
 import { fmtDate, humanize, chatTitle } from '../lib/format.js';
 
-function Pane({ title, meta, onBack, children }) {
+function Pane({ title, meta, onBack, actions, children }) {
   return html`<section class="pane">
     <header class="pane-head">
       <button type="button" class="icon-btn back" onClick=${onBack} aria-label="Back to list"><${Icon} name="caretLeft" size=${16} /></button>
@@ -12,6 +13,7 @@ function Pane({ title, meta, onBack, children }) {
         <h1>${title}</h1>
         ${meta && html`<div class="pane-meta">${meta}</div>`}
       </div>
+      ${actions}
     </header>
     <div class="scroll"><div class="column">${children}</div></div>
   </section>`;
@@ -35,6 +37,7 @@ export function ProjectView({ project, memory, chats = [], onPickChats, onBack }
   return html`<${Pane}
     title=${project.name || 'Untitled project'}
     onBack=${onBack}
+    actions=${html`<${ProjectExportMenu} project=${project} memory=${memory || ''} chats=${chats} />`}
     meta=${html`<span>${project.docs.length} ${project.docs.length === 1 ? 'document' : 'documents'}</span><span>${chats.length} ${chats.length === 1 ? 'chat' : 'chats'}</span><span>${fmtDate(project.created_at)}</span>`}
   >
     ${project.description && html`<p class="lede-sm">${project.description}</p>`}
