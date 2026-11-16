@@ -276,7 +276,7 @@ export function App() {
             const ordered = order === 'old' ? emptyChats.toReversed() : emptyChats;
             groups.push({
               label: `Empty chats (${emptyChats.length})`,
-              items: ordered.map((c) => ({ id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.created_at)}  ${diagnoseEmpty(c).short}` })),
+              items: ordered.map((c) => ({ id: c.uuid, title: chatTitle(c), meta: `${fmtDate(c.updated_at)}  ${diagnoseEmpty(c).short}` })),
             });
           }
         }
