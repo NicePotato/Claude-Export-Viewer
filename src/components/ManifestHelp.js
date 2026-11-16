@@ -3,54 +3,51 @@
 import { html } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { fmtDateTime } from '../lib/format.js';
+import { t } from '../lib/i18n.js';
 
 // Most useful first; anything unknown goes last.
 const ORDER = ['conversations', 'projects', 'memories', 'frames', 'feedback', 'design_chats', 'light_metadata'];
 const rank = (c) => (ORDER.includes(c) ? ORDER.indexOf(c) : ORDER.length);
 
-const LABELS = {
-  conversations: 'Chats',
-  projects: 'Projects and documents',
-  memories: 'Memory',
-  frames: 'Artifacts',
-  feedback: 'Reflections',
-  design_chats: 'Design chats',
-  light_metadata: 'Account details (the viewer ignores these)',
-};
+// Label for a file category; unknown categories show their raw name.
+const label = (category) => (ORDER.includes(category) ? t(`man.l.${category}`) : category);
+
+/** Put `file` in <code> wherever the translation has a {file} placeholder, so word order stays free. */
+function withCode(text, file) {
+  const [before, ...rest] = text.split('{file}');
+  return html`${before}${rest.map((part, i) => html`<code key=${i}>${file}</code>${part}`)}`;
+}
 
 export function ManifestHelp({ manifest, now = Date.now() }) {
   const expired = manifest.expires_at !== null && manifest.expires_at < now;
   const chats = manifest.files.find((f) => f.category === 'conversations');
+  const when = manifest.expires_at ? fmtDateTime(new Date(manifest.expires_at).toISOString()) : '';
 
-  return html`<section class="manifest" aria-label="This is a download list">
-    <h2><${Icon} name="warningCircle" size=${16} />That file is a download list, not your export</h2>
-    <p>
-      Claude sometimes sends this small file first. It only holds links to the real files,
-      so there is nothing to read in it yet. Here is how to get everything:
-    </p>
+  return html`<section class="manifest" aria-label=${t('man.label')}>
+    <h2><${Icon} name="warningCircle" size=${16} />${t('man.title')}</h2>
+    <p>${t('man.p1')}</p>
     <ol>
       ${expired
         ? html`<li>
-            <strong>These links have expired${manifest.expires_at ? ` (${fmtDateTime(new Date(manifest.expires_at).toISOString())})` : ''}.</strong>
-            In Claude.ai open Settings, then Privacy, and choose Export data. Claude emails you a new link,
-            and the new export may again start with a list like this one.
+            <strong>${t('man.expiredStrong', { when: when ? ` (${when})` : '' })}</strong>
+            ${' '}${t('man.expiredRest')}
           </li>`
         : html`<li>
-            Open each link below while signed in to Claude.ai and let the download finish.
-            ${' '}${manifest.expires_at ? `They expire ${fmtDateTime(new Date(manifest.expires_at).toISOString())}, and a link may stop working once it has been used.` : 'They expire after 24 hours.'}
+            ${t('man.open')}
+            ${' '}${when ? t('man.expiresAt', { date: when }) : t('man.expires24')}
           </li>`}
-      <li>Save all ${manifest.files.length} files into one folder and leave them zipped.</li>
-      <li>Drop that folder, or the zip files, onto this page.${chats ? html` <code>${chats.filename}</code> alone is enough to read your chats.` : ''}</li>
+      <li>${t('man.save', { n: manifest.files.length })}</li>
+      <li>${t('man.drop')}${chats ? html` ${withCode(t('man.alone'), chats.filename)}` : ''}</li>
     </ol>
     <ul class="manifest-files">
       ${manifest.files.toSorted((a, b) => rank(a.category) - rank(b.category)).map((f) => html`<li key=${f.filename}>
         <span class="manifest-name">${f.filename}</span>
-        <span class="manifest-what">${LABELS[f.category] || f.category}</span>
+        <span class="manifest-what">${label(f.category)}</span>
         ${f.url && !expired
-          ? html`<a class="btn" href=${f.url} target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><${Icon} name="downloadSimple" size=${14} />Download</a>`
-          : html`<span class="manifest-na">${expired ? 'expired' : 'no link'}</span>`}
+          ? html`<a class="btn" href=${f.url} target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><${Icon} name="downloadSimple" size=${14} />${t('man.download')}</a>`
+          : html`<span class="manifest-na">${expired ? t('man.expired') : t('man.noLink')}</span>`}
       </li>`)}
     </ul>
-    <p class="fine">This page only shows the links. It never opens them itself, and the list is not kept in your browser.</p>
+    <p class="fine">${t('man.fine')}</p>
   </section>`;
 }

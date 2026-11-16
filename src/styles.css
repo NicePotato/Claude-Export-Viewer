@@ -84,6 +84,18 @@ a { color: inherit; }
 .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
 .btn-primary:hover { background: #fff; }
 
+/* ---------- Language ---------- */
+select { font: inherit; color: inherit; }
+.landing-lang { display: flex; justify-content: flex-end; margin: 0 0 16px; }
+.lang-select {
+  padding: 5px 10px; border-radius: var(--r); border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--text-2); font-size: 12px; cursor: pointer;
+}
+.lang-select:hover { background: var(--surface-2); color: var(--text); }
+.lang-list { display: grid; gap: 8px; margin-top: 14px; }
+.lang-list .btn { justify-content: center; }
+.rail-glyph { flex: none; width: 20px; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+
 .icon-btn {
   display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0;
   border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer;

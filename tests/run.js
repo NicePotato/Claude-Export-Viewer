@@ -12,6 +12,7 @@ import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
 import { showsNothing, diagnoseEmpty } from '../src/lib/empties.js';
 import { projectToMarkdown, projectFiles, projectsToZip, uniqueName } from '../src/lib/projectExport.js';
 import { assign, prune, chatsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
+import { LOCALES, t, tn, tNote, setLang, getLang } from '../src/lib/i18n.js';
 
 const results = [];
 function test(name, fn) { results.push({ name, fn }); }
@@ -444,6 +445,73 @@ test('manifest: safeExportUrl rejects other schemes, hosts and junk', () => {
   eq(safeExportUrl('not a url'), '');
   eq(safeExportUrl('https://sub.claude.ai/x') !== '', true);
   eq(safeExportUrl('https://claude.ai.evil.com/x'), '');
+});
+
+// ---- i18n -----------------------------------------------------------------
+const placeholders = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+/** Run `fn` in language `code`, always going back to English so other tests stay unaffected. */
+const inLang = (code, fn) => { setLang(code); try { return fn(); } finally { setLang('en'); } };
+
+test('i18n: five languages besides English are available', () => {
+  eq(LOCALES.map((l) => l.code), ['en', 'es', 'de', 'fr', 'ru', 'zh']);
+});
+test('i18n: every locale has exactly the English keys and the same placeholders', () => {
+  const base = LOCALES[0];
+  for (const loc of LOCALES.slice(1)) {
+    eq(Object.keys(loc.strings).sort(), Object.keys(base.strings).sort(), `${loc.code} strings`);
+    for (const [k, v] of Object.entries(loc.strings)) eq(placeholders(v), placeholders(base.strings[k]), `${loc.code}:${k}`);
+    eq(Object.keys(loc.plurals).sort(), Object.keys(base.plurals).sort(), `${loc.code} plurals`);
+    eq(Object.keys(loc.notes).sort(), Object.keys(base.notes).sort(), `${loc.code} notes`);
+    const needed = new Set(['other']);
+    const rules = new Intl.PluralRules(loc.code);
+    for (let n = 0; n < 200; n += 1) needed.add(rules.select(n));
+    for (const [k, forms] of Object.entries(loc.plurals)) {
+      for (const form of needed) ok(typeof forms[form] === 'string' && forms[form].includes('{n}'), `${loc.code}:${k} lacks "${form}"`);
+    }
+  }
+});
+test('i18n: translations are not left identical to English (spot check)', () => {
+  for (const loc of LOCALES.slice(1)) ok(loc.strings['view.projects'] !== LOCALES[0].strings['view.projects'], loc.code);
+});
+test('i18n: plural forms follow each language (Russian has one/few/many)', () => {
+  inLang('ru', () => eq([1, 2, 5, 11, 21].map((n) => tn('chat', n)), ['1 чат', '2 чата', '5 чатов', '11 чатов', '21 чат']));
+  inLang('zh', () => eq(tn('chat', 3), '3 个对话'));
+  inLang('de', () => eq([tn('message', 1), tn('message', 2)], ['1 Nachricht', '2 Nachrichten']));
+  eq(tn('message', 1), '1 message');
+});
+test('i18n: unknown codes fall back to English, unknown keys return the key', () => {
+  inLang('xx', () => eq(getLang(), 'en'));
+  eq(t('no.such.key'), 'no.such.key');
+  eq(t('imp.loaded', { summary: 'x' }), 'Loaded: x.');
+});
+test('i18n: import notes are translated, unknown text is left alone', () => {
+  inLang('fr', () => eq(tNote('Unrecognized file'), 'Fichier non reconnu'));
+  eq(tNote('Unrecognized file'), 'Unrecognized file');
+  inLang('fr', () => eq(tNote('some zip error'), 'some zip error'));
+});
+test('i18n: library output follows the language (recency labels, titles, summary, empty chats)', () => {
+  inLang('de', () => {
+    eq(groupByRecency([{ d: new Date().toISOString() }], (x) => x.d)[0].label, 'Heute');
+    eq(chatTitle({ name: '', messages: [] }), 'Unbenannter Chat');
+    const d = emptyData(); d.chats.push({}); d.projects.push({}, {});
+    eq(summarize(d), '1 Chat, 2 Projekte');
+    eq(diagnoseEmpty({ messages: [] }).short, 'Keine Nachrichten im Export');
+  });
+  eq(chatTitle({ name: '', messages: [] }), 'Untitled chat');
+});
+test('i18n: exported Markdown headings are translated', () => {
+  const chat = normalizeChat(rawChat('c1', [msg('1', ROOT_UUID, 'human', 'hola'), msg('2', '1', 'assistant', 'que tal')]));
+  const items = toViewList(resolvePath(buildTree(chat.messages)));
+  inLang('es', () => { const md = chatToMarkdown(chat, items); ok(md.includes('## Tú') && md.includes('## Claude'), md); });
+  inLang('ru', () => ok(chatToMarkdown(chat, items).includes('## Вы')));
+  ok(chatToMarkdown(chat, items).includes('## You'));
+});
+test('i18n: code blocks use the translated copy label and the render cache is per language', () => {
+  const src = '```js\nlet a = 1\n```';
+  const en = renderMarkdown(src);
+  inLang('fr', () => ok(renderMarkdown(src).includes('>Copier<')));
+  eq(renderMarkdown(src), en);
+  ok(en.includes('>Copy<'));
 });
 
 // ---- run ------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { Markdown } from './Markdown.js';
 import { CopyButton } from './CopyButton.js';
 import { fmtDateTime, fmtBytes, hostname } from '../lib/format.js';
 import { toolBrief, toolLabel } from '../lib/tools.js';
+import { t, tn } from '../lib/i18n.js';
 
 export { toolBrief, toolLabel };
 
@@ -42,16 +43,16 @@ export function groupBlocks(blocks) {
 }
 
 function more(cut) {
-  return cut ? `\n... ${cut} more characters` : '';
+  return cut ? `\n${t('msg.more', { n: cut })}` : '';
 }
 
 function Steps({ items, results }) {
   const thinking = items.filter((i) => i.type === 'thinking').length;
   const tools = items.filter((i) => i.type === 'tool_use').length;
-  const parts = [];
-  if (thinking) parts.push('Thinking');
-  if (tools) parts.push(`${tools} tool ${tools === 1 ? 'call' : 'calls'}`);
-  const label = parts.join(' and ') || 'Steps';
+  let label = t('msg.steps');
+  if (thinking && tools) label = t('msg.thinkingAnd', { tools: tn('toolCall', tools) });
+  else if (thinking) label = t('msg.thinking');
+  else if (tools) label = tn('toolCall', tools);
   const rows = items.filter((i) => i.type !== 'tool_result' || !results.pairedIds.has(i.tool_use_id));
 
   return html`<details class="steps">
@@ -64,7 +65,7 @@ function Steps({ items, results }) {
       ${rows.map((b, i) => {
         if (b.type === 'thinking') {
           const text = b.thinking || b.summaries?.[0]?.summary || '';
-          return html`<div class="step step-think" key=${i}><${Markdown} text=${text || '(empty)'} /></div>`;
+          return html`<div class="step step-think" key=${i}><${Markdown} text=${text || t('msg.emptyBlock')} /></div>`;
         }
         if (b.type === 'tool_use') {
           const res = results.byUse.get(b.id);
@@ -77,17 +78,17 @@ function Steps({ items, results }) {
               <${Icon} name="caretRight" size=${12} class="chev" />
             </summary>
             <div class="tool-io">
-              <div class="io-label">Input</div>
+              <div class="io-label">${t('msg.input')}</div>
               <pre>${input.text + more(input.cut)}</pre>
-              ${res && html`<div class="io-label">${res.is_error ? 'Error' : 'Result'}</div>
-                <pre>${(out.text || '(empty)') + more(out.cut)}</pre>`}
+              ${res && html`<div class="io-label">${res.is_error ? t('msg.error') : t('msg.result')}</div>
+                <pre>${(out.text || t('msg.emptyBlock')) + more(out.cut)}</pre>`}
             </div>
           </details>`;
         }
         const out = truncate(resultText(b), RESULT_LIMIT);
         return html`<details class="step step-tool" key=${i}>
-          <summary><span class="tool-name">result</span><${Icon} name="caretRight" size=${12} class="chev" /></summary>
-          <div class="tool-io"><pre>${(out.text || '(empty)') + more(out.cut)}</pre></div>
+          <summary><span class="tool-name">${t('msg.resultLower')}</span><${Icon} name="caretRight" size=${12} class="chev" /></summary>
+          <div class="tool-io"><pre>${(out.text || t('msg.emptyBlock')) + more(out.cut)}</pre></div>
         </details>`;
       })}
     </div>
@@ -124,13 +125,13 @@ function FileChips({ msg }) {
     chips.push(html`<details class="file" key=${`a-${chips.length}`}>
       <summary>
         <${Icon} name="fileText" size=${14} />
-        <span class="file-name">${a.file_name || 'Attachment'}</span>
+        <span class="file-name">${a.file_name || t('msg.attachment')}</span>
         <span class="file-meta">${a.file_size ? fmtBytes(a.file_size) : ''}</span>
         <${Icon} name="caretRight" size=${12} class="chev" />
       </summary>
       ${body.text
         ? html`<pre class="file-body">${body.text + more(body.cut)}</pre>`
-        : html`<div class="file-empty">No text content was exported for this file.</div>`}
+        : html`<div class="file-empty">${t('msg.noText')}</div>`}
     </details>`);
   }
 
@@ -138,20 +139,20 @@ function FileChips({ msg }) {
   for (const b of msg.blocks) {
     if (b.type === 'document' && b.title && !seen.has(b.title.toLowerCase())) {
       seen.add(b.title.toLowerCase());
-      chips.push(html`<${StaticFile} key=${`d-${chips.length}`} icon="paperclip" name=${b.title} note="content not in export" />`);
+      chips.push(html`<${StaticFile} key=${`d-${chips.length}`} icon="paperclip" name=${b.title} note=${t('msg.notInExport')} />`);
     }
     if (b.type === 'image' && b.file_uuid) imageIds.add(b.file_uuid);
   }
   for (const f of msg.files) {
     if (f.file_name && !seen.has(f.file_name.toLowerCase())) {
       seen.add(f.file_name.toLowerCase());
-      chips.push(html`<${StaticFile} key=${`f-${chips.length}`} icon="paperclip" name=${f.file_name} note="content not in export" />`);
+      chips.push(html`<${StaticFile} key=${`f-${chips.length}`} icon="paperclip" name=${f.file_name} note=${t('msg.notInExport')} />`);
     } else if (!f.file_name && f.file_uuid) {
       imageIds.add(f.file_uuid);
     }
   }
   for (const id of imageIds) {
-    chips.push(html`<${StaticFile} key=${`i-${id}`} icon="image" name="Image" note="not included in export" />`);
+    chips.push(html`<${StaticFile} key=${`i-${id}`} icon="image" name=${t('msg.image')} note=${t('msg.imageNot')} />`);
   }
   return chips.length ? html`<div class="files">${chips}</div>` : null;
 }
@@ -160,10 +161,10 @@ function BranchNav({ entry, onPick }) {
   const { siblings, index, parentKey } = entry;
   if (siblings.length < 2) return null;
   const go = (d) => onPick(parentKey, siblings[(index + d + siblings.length) % siblings.length].uuid);
-  return html`<div class="branch" role="group" aria-label="Switch between versions of this message">
-    <button type="button" class="icon-btn" onClick=${() => go(-1)} aria-label="Previous version"><${Icon} name="caretLeft" size=${12} /></button>
+  return html`<div class="branch" role="group" aria-label=${t('msg.branchGroup')}>
+    <button type="button" class="icon-btn" onClick=${() => go(-1)} aria-label=${t('msg.prevVersion')}><${Icon} name="caretLeft" size=${12} /></button>
     <span class="branch-count">${index + 1} / ${siblings.length}</span>
-    <button type="button" class="icon-btn" onClick=${() => go(1)} aria-label="Next version"><${Icon} name="caretRight" size=${12} /></button>
+    <button type="button" class="icon-btn" onClick=${() => go(1)} aria-label=${t('msg.nextVersion')}><${Icon} name="caretRight" size=${12} /></button>
   </div>`;
 }
 
@@ -186,7 +187,7 @@ export function Message({ item, onPick }) {
       <div class="bubble">
         <${FileChips} msg=${msg} />
         ${msg.text && html`<div class="human-text">${msg.text}</div>`}
-        ${bare && html`<div class="human-text muted">(empty message)</div>`}
+        ${bare && html`<div class="human-text muted">${t('msg.emptyMessage')}</div>`}
       </div>
       <${Meta} entry=${entry} onPick=${onPick} time=${time} text=${msg.text} />
     </article>`;
@@ -219,7 +220,7 @@ export function Message({ item, onPick }) {
       }
       return null;
     })}
-    ${!groups.length && html`<div class="muted">(empty reply)</div>`}
+    ${!groups.length && html`<div class="muted">${t('msg.emptyReply')}</div>`}
     <${Meta} entry=${entry} onPick=${onPick} time=${time} text=${msg.text} />
   </article>`;
 }

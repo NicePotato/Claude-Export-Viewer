@@ -5,7 +5,9 @@ import { buildTree, resolvePath, toViewList } from './tree.js';
 import { chatToMarkdown, exportFileName, safeName } from './export.js';
 import { chatTitle, fmtDate } from './format.js';
 
-const projectTitle = (p) => p.name || 'Untitled project';
+import { t } from './i18n.js';
+
+const projectTitle = (p) => p.name || t('untitledProject');
 
 /** A code fence longer than any backtick run inside the text, so the content can never close it early. */
 function fenced(text, lang = '') {
@@ -24,12 +26,12 @@ export function uniqueName(name, used) {
   return candidate;
 }
 
-const chatLine = (c) => `- ${fmtDate(c.created_at) || 'Undated'}  ${chatTitle(c)}`;
+const chatLine = (c) => `- ${fmtDate(c.created_at) || t('undated')}  ${chatTitle(c)}`;
 
 function header(project) {
   const out = [`# ${projectTitle(project)}`, ''];
   const when = fmtDate(project.created_at);
-  out.push(`${when ? `Created ${when}. ` : ''}Exported from a Claude data export.`);
+  out.push(when ? t('exp.created', { date: when }) : t('exp.plain'));
   if (project.description) out.push('', project.description.trim());
   return out;
 }
@@ -41,13 +43,13 @@ function header(project) {
  */
 export function projectToMarkdown(project, { memory = '', chats = [] } = {}) {
   const out = header(project);
-  if (project.prompt) out.push('', '## Instructions', '', project.prompt.trim());
-  if (memory) out.push('', '## Memory', '', memory.trim());
+  if (project.prompt) out.push('', `## ${t('exp.instructions')}`, '', project.prompt.trim());
+  if (memory) out.push('', `## ${t('exp.memory')}`, '', memory.trim());
   if (project.docs.length) {
-    out.push('', '## Documents');
-    for (const d of project.docs) out.push('', `### ${d.filename}`, '', d.content ? fenced(d.content) : '_Empty document._');
+    out.push('', `## ${t('exp.documents')}`);
+    for (const d of project.docs) out.push('', `### ${d.filename}`, '', d.content ? fenced(d.content) : t('exp.emptyDoc'));
   }
-  if (chats.length) out.push('', '## Chats', '', ...chats.map(chatLine));
+  if (chats.length) out.push('', `## ${t('exp.chats')}`, '', ...chats.map(chatLine));
   return out.join('\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }
 
@@ -59,8 +61,8 @@ export function projectFiles(project, { memory = '', chats = [], steps = false }
   const files = [];
 
   const readme = header(project);
-  if (project.docs.length) readme.push('', '## Documents', '', ...project.docs.map((d) => `- ${d.filename}`));
-  if (chats.length) readme.push('', '## Chats', '', ...chats.map(chatLine));
+  if (project.docs.length) readme.push('', `## ${t('exp.documents')}`, '', ...project.docs.map((d) => `- ${d.filename}`));
+  if (chats.length) readme.push('', `## ${t('exp.chats')}`, '', ...chats.map(chatLine));
   files.push({ path: 'README.md', text: readme.join('\n') + '\n' });
 
   if (project.prompt) files.push({ path: 'instructions.md', text: `${project.prompt.trim()}\n` });

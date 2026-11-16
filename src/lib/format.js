@@ -1,19 +1,33 @@
 // Formatting helpers. Pure functions, no DOM.
 
-const dateFmt = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-const dateTimeFmt = new Intl.DateTimeFormat(undefined, {
-  year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-});
-const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+import { t, locale } from './i18n.js';
+
+// Formatters follow the interface language, so they are built once per locale.
+const formatters = new Map();
+function fmt() {
+  const tag = locale();
+  let f = formatters.get(tag);
+  if (!f) {
+    f = {
+      date: new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric' }),
+      dateTime: new Intl.DateTimeFormat(tag, {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      }),
+      month: new Intl.DateTimeFormat(tag, { month: 'long', year: 'numeric' }),
+    };
+    formatters.set(tag, f);
+  }
+  return f;
+}
 
 export function fmtDate(iso) {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : dateFmt.format(d);
+  return Number.isNaN(d.getTime()) ? '' : fmt().date.format(d);
 }
 
 export function fmtDateTime(iso) {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : dateTimeFmt.format(d);
+  return Number.isNaN(d.getTime()) ? '' : fmt().dateTime.format(d);
 }
 
 export function fmtBytes(n) {
@@ -32,7 +46,7 @@ export function clip(text, n) {
 export function chatTitle(chat) {
   if (chat.name && chat.name.trim()) return chat.name.trim();
   const first = chat.messages.find((m) => m.sender === 'human' && m.text && m.text.trim());
-  return first ? clip(first.text, 60) : 'Untitled chat';
+  return first ? clip(first.text, 60) : t('untitledChat');
 }
 
 /** Milliseconds since the epoch for an ISO string; unparseable dates sort as oldest. */
@@ -72,13 +86,13 @@ export function groupByRecency(items, getDate, now = new Date()) {
   };
   for (const item of items) {
     const d = new Date(getDate(item));
-    if (Number.isNaN(d.getTime())) { push('Undated', item); continue; }
+    if (Number.isNaN(d.getTime())) { push(t('undated'), item); continue; }
     const diff = Math.floor((today - startOfDay(d)) / DAY);
-    if (diff <= 0) push('Today', item);
-    else if (diff === 1) push('Yesterday', item);
-    else if (diff <= 7) push('Previous 7 days', item);
-    else if (diff <= 30) push('Previous 30 days', item);
-    else push(monthFmt.format(d), item);
+    if (diff <= 0) push(t('time.today'), item);
+    else if (diff === 1) push(t('time.yesterday'), item);
+    else if (diff <= 7) push(t('time.prev7'), item);
+    else if (diff <= 30) push(t('time.prev30'), item);
+    else push(fmt().month.format(d), item);
   }
   return groups;
 }

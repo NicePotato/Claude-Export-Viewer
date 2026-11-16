@@ -1,5 +1,7 @@
 # Claude Export Viewer
 
+**English** · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Русский](README.ru.md) · [简体中文](README.zh.md)
+
 A local-only viewer for the data export you can download from Claude.ai. Open `conversations.json`
 or the export zips and read your chats with branches, search, attachments, projects, memory and artifacts.
 
@@ -18,6 +20,8 @@ Unofficial tool, not affiliated with Anthropic.
 - Chats with nothing readable go under *Empty chats*, with the reason read from the file.
 - Export a chat or project as Markdown, or a project (or all of them) as a zip.
 - Memory, artifacts and reflections in their own sections.
+- Available in English, Spanish, German, French, Russian and Simplified Chinese. Pick the language on
+  the start page or with the language button in the sidebar. It also applies to exported Markdown.
 
 ## Quick start
 
@@ -73,14 +77,20 @@ Plain ES modules, no bundler, no Node.
 ```
 index.html          entry point and CSP
 serve.py            127.0.0.1 static server
-src/lib/            import, branch tree, search, export (no DOM)
+src/lib/            import, branch tree, search, export, i18n (no DOM)
 src/components/     Preact + htm views
+src/locales/        translations: en (source of truth), es, de, fr, ru, zh
 src/styles.css      styling
 fonts/, vendor/     Medeo Mono, vendored libraries
 tests/              browser test suite
 ```
 
 Tests: run `python serve.py`, open `http://127.0.0.1:5173/tests/`. The tab title shows `PASSED n` or `FAILED n`.
+
+Translations: strings live in `src/locales/<code>.js` and are read with `t()` and `tn()` (plurals) from
+`src/lib/i18n.js`. To add a language, copy `en.js`, translate it, and register it in `i18n.js`. The tests
+fail if a locale misses a key or a placeholder, or lacks a plural form its language needs. The browser
+language picks the first default; the choice is saved in `localStorage`.
 
 Contributing: branch from `main` (`feature/...`, `fix/...`, `docs/...`), use
 [Conventional Commits](https://www.conventionalcommits.org/), and open a pull request with the tests passing.
