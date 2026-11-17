@@ -43,7 +43,7 @@ Plan: [plan.md](plan.md). Spec: [../SPEC.md](../SPEC.md).
   - Files: at most about 5 per task
 
 ## Phase D: Close
-- [ ] Task 9: Final pass and spec update
+- [x] Task 9: Final pass and spec update
   - Acceptance: all 13 criteria recorded as passing; SPEC.md reflects any decisions
   - Verify: full test page plus manual checklist
   - Files: SPEC.md, tasks/audit.md
