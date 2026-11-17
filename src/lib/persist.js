@@ -3,17 +3,17 @@ const DB = 'claude-export-viewer';
 const STORE = 'kv';
 const KEY = 'export-data';
 
-function open() {
+function open(name) {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
+    const req = indexedDB.open(name, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function tx(mode, fn) {
-  const db = await open();
+async function tx(name, mode, fn) {
+  const db = await open(name);
   return new Promise((resolve, reject) => {
     const t = db.transaction(STORE, mode);
     const req = fn(t.objectStore(STORE));
@@ -24,6 +24,13 @@ async function tx(mode, fn) {
 }
 
 // The download list holds time-limited links, so it is never written to storage.
-export const saveData = (data) => tx('readwrite', (s) => s.put({ ...data, manifest: null }, KEY));
-export const loadData = () => tx('readonly', (s) => s.get(KEY)).catch(() => undefined);
-export const clearData = () => tx('readwrite', (s) => s.delete(KEY));
+// The database name is a parameter only so the tests can use a throwaway one.
+export function createStore(name = DB) {
+  return {
+    saveData: (data) => tx(name, 'readwrite', (s) => s.put({ ...data, manifest: null }, KEY)),
+    loadData: () => tx(name, 'readonly', (s) => s.get(KEY)).catch(() => undefined),
+    clearData: () => tx(name, 'readwrite', (s) => s.delete(KEY)),
+  };
+}
+
+export const { saveData, loadData, clearData } = createStore();
