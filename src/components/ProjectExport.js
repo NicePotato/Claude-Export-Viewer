@@ -9,7 +9,7 @@ import {
 
 import { t, tn } from '../lib/i18n.js';
 
-export function ProjectExportMenu({ project, memory, chats }) {
+export function ProjectExportMenu({ project, memory, chats, artifacts = [] }) {
   const [steps, setSteps] = useState(false);
   const [note, setNote] = useState('');
   const ref = useRef(null);
@@ -17,7 +17,7 @@ export function ProjectExportMenu({ project, memory, chats }) {
 
   const zip = () => {
     try {
-      const bytes = projectsToZip([{ project, memory, chats }], { steps });
+      const bytes = projectsToZip([{ project, memory, chats, artifacts }], { steps });
       downloadBlob(new Blob([bytes], { type: 'application/zip' }), projectZipName(project));
       flash(t('chat.saved'));
     } catch (e) {
@@ -25,11 +25,11 @@ export function ProjectExportMenu({ project, memory, chats }) {
     }
   };
   const markdown = () => {
-    downloadBlob(textBlob(projectToMarkdown(project, { memory, chats })), projectFileName(project));
+    downloadBlob(textBlob(projectToMarkdown(project, { memory, chats, artifacts })), projectFileName(project));
     flash(t('chat.saved'));
   };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(projectToMarkdown(project, { memory, chats })); flash(t('chat.copied')); } catch { flash(t('chat.copyBlocked')); }
+    try { await navigator.clipboard.writeText(projectToMarkdown(project, { memory, chats, artifacts })); flash(t('chat.copied')); } catch { flash(t('chat.copyBlocked')); }
   };
 
   useDismissDetails(ref);
@@ -44,7 +44,7 @@ export function ProjectExportMenu({ project, memory, chats }) {
       <button type="button" class="btn btn-primary" onClick=${zip}>${t('pe.zip')}</button>
       <button type="button" class="btn" onClick=${markdown}>${t('pe.md')}</button>
       <button type="button" class="btn" onClick=${copy}>${t('pe.copy')}</button>
-      <p class="menu-fine">${t('pe.fine', { docs: tn('document', project.docs.length), chats: tn('filedChat', chats.length) })}</p>
+      <p class="menu-fine">${t('pe.fine', { docs: tn('document', project.docs.length), chats: tn('filedChat', chats.length), artifacts: tn('artifact', artifacts.length) })}</p>
       <div class="menu-note" role="status">${note}</div>
     </div>
   </details>`;

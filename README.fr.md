@@ -16,9 +16,9 @@ Outil non officiel, sans lien avec Anthropic.
 - Branches : un contrôle `< 2 / 3 >` permet de passer d'une version modifiée ou régénérée à une autre.
 - Recherche plein texte avec correspondances surlignées dans la conversation. Appuyez sur `/` pour y accéder.
 - Tri par date, regroupement par date ou par projet.
-- Projets avec instructions, documents et mémoire, plus les conversations que vous y classez.
+- Projets avec instructions, documents et mémoire, plus les conversations et les artefacts que vous y classez.
 - Les conversations sans contenu lisible vont sous *Conversations vides*, avec la raison lue dans le fichier.
-- Export d'une conversation ou d'un projet en Markdown, ou d'un projet (ou de tous) en zip.
+- Export d'une conversation, d'un projet, de la mémoire, d'un artefact ou d'une réflexion en Markdown, ou d'un projet, de toute la mémoire, de tous les artefacts ou de toutes les réflexions en zip.
 - Mémoire, artefacts et réflexions dans leurs propres sections.
 - Disponible en anglais, espagnol, allemand, français, russe et chinois simplifié. Choisissez la langue sur la
   page d'accueil ou avec le bouton de langue de la barre latérale. Elle s'applique aussi au Markdown exporté.
@@ -61,8 +61,8 @@ Cochez **Conserver l'export chargé dans ce navigateur** pour le stocker dans In
 
 ## Remarques
 
-- **Projets :** l'export n'indique pas à quel projet appartenait une conversation. Utilisez le menu **Projet**
-  d'une conversation, ou **Ajouter des conversations** dans un projet. Les choix sont enregistrés uniquement dans ce navigateur.
+- **Projets :** l'export n'indique pas à quel projet appartenait une conversation ou un artefact. Utilisez le menu **Projet**
+  d'une conversation ou d'un artefact, ou **Ajouter des conversations** / **Ajouter des artefacts** dans un projet. Les choix sont enregistrés uniquement dans ce navigateur.
 - **Conversations vides :** le visualiseur ne peut pas récupérer le texte absent de l'export et ne devine pas
   pourquoi. Les raisons se limitent à ce que montre le fichier, par ex. aucun message, tous les corps vides ou
   seulement un texte de remplacement.

@@ -16,9 +16,9 @@ Unofficial tool, not affiliated with Anthropic.
 - Branches: a `< 2 / 3 >` control switches between edited or retried versions.
 - Full-text search with highlighted matches in the chat. Press `/` to focus it.
 - Sort by date, group by date or project.
-- Projects with instructions, documents and memory, plus the chats you file under them.
+- Projects with instructions, documents and memory, plus the chats and artifacts you file under them.
 - Chats with nothing readable go under *Empty chats*, with the reason read from the file.
-- Export a chat or project as Markdown, or a project (or all of them) as a zip.
+- Export a chat, project, memory, artifact or reflection as Markdown, or a project, all memory, all artifacts or all reflections as a zip.
 - Memory, artifacts and reflections in their own sections.
 - Available in English, Spanish, German, French, Russian and Simplified Chinese. Pick the language on
   the start page or with the language button in the sidebar. It also applies to exported Markdown.
@@ -59,8 +59,8 @@ Tick **Keep the loaded export in this browser** to store it in IndexedDB; the tr
 
 ## Notes
 
-- **Projects:** the export does not say which project a chat belonged to. Use the **Project** menu in a
-  chat, or **Add chats** in a project. Choices are saved in this browser only.
+- **Projects:** the export does not say which project a chat or artifact belonged to. Use the **Project** menu
+  on a chat or artifact, or **Add chats** / **Add artifacts** in a project. Choices are saved in this browser only.
 - **Empty chats:** the viewer cannot recover text missing from the export and does not guess why.
   Reasons are limited to what the file shows, e.g. no messages, all bodies empty, or only a placeholder.
 - **Privacy:** no analytics, CDN or remote fonts, and libraries are vendored. Remote images are not

@@ -16,9 +16,9 @@ Inoffizielles Tool, nicht mit Anthropic verbunden.
 - Verzweigungen: Mit `< 2 / 3 >` wechselst du zwischen bearbeiteten oder erneut versuchten Versionen.
 - Volltextsuche mit hervorgehobenen Treffern im Chat. Mit `/` springst du ins Suchfeld.
 - Sortieren nach Datum, gruppieren nach Datum oder Projekt.
-- Projekte mit Anweisungen, Dokumenten und Gedächtnis sowie den Chats, die du darin ablegst.
+- Projekte mit Anweisungen, Dokumenten und Gedächtnis sowie den Chats und Artefakten, die du darin ablegst.
 - Chats ohne lesbaren Inhalt landen unter *Leere Chats*, mit dem aus der Datei gelesenen Grund.
-- Einen Chat oder ein Projekt als Markdown exportieren, oder ein Projekt (oder alle) als Zip.
+- Einen Chat, ein Projekt, Gedächtnis, ein Artefakt oder einen Rückblick als Markdown exportieren, oder ein Projekt, das gesamte Gedächtnis, alle Artefakte oder alle Rückblicke als Zip.
 - Gedächtnis, Artefakte und Rückblicke in eigenen Bereichen.
 - Verfügbar auf Englisch, Spanisch, Deutsch, Französisch, Russisch und in vereinfachtem Chinesisch. Die Sprache
   wählst du auf der Startseite oder mit der Sprachtaste in der Seitenleiste. Sie gilt auch für exportiertes Markdown.
@@ -61,8 +61,8 @@ Papierkorb-Taste oder **Leeren** entfernt ihn.
 
 ## Hinweise
 
-- **Projekte:** Der Export sagt nicht, zu welchem Projekt ein Chat gehörte. Nutze das Menü **Projekt** in einem
-  Chat oder **Chats hinzufügen** in einem Projekt. Die Auswahl wird nur in diesem Browser gespeichert.
+- **Projekte:** Der Export sagt nicht, zu welchem Projekt ein Chat oder Artefakt gehörte. Nutze das Menü **Projekt** in einem
+  Chat oder Artefakt oder **Chats hinzufügen** / **Artefakte hinzufügen** in einem Projekt. Die Auswahl wird nur in diesem Browser gespeichert.
 - **Leere Chats:** Der Viewer kann Text, der im Export fehlt, nicht wiederherstellen und rät auch nicht, warum.
   Die Gründe beschränken sich auf das, was die Datei zeigt, z. B. keine Nachrichten, alle Texte leer oder nur
   ein Platzhalter.

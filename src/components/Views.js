@@ -3,7 +3,12 @@ import { html } from '../lib/ui.js';
 import { Icon } from './Icon.js';
 import { Markdown } from './Markdown.js';
 import { ProjectExportMenu } from './ProjectExport.js';
+import { TextExportMenu } from './TextExport.js';
+import { ProjectMenu } from './ProjectLinks.js';
 import { fmtDate, humanize, chatTitle } from '../lib/format.js';
+import {
+  memoryToMarkdown, memoryFileName, artifactToMarkdown, artifactFileName, reflectionToMarkdown, reflectionFileName,
+} from '../lib/sectionExport.js';
 import { t, tn } from '../lib/i18n.js';
 
 function Pane({ title, meta, onBack, actions, children }) {
@@ -34,12 +39,12 @@ function DocBody({ filename, content }) {
     ${cut > 0 && html`<div class="file-empty">${t('view.moreChars', { n: cut })}</div>`}`;
 }
 
-export function ProjectView({ project, memory, chats = [], onPickChats, onBack }) {
+export function ProjectView({ project, memory, chats = [], artifacts = [], onPickChats, onPickArtifacts, onBack }) {
   return html`<${Pane}
     title=${project.name || t('untitledProject')}
     onBack=${onBack}
-    actions=${html`<${ProjectExportMenu} project=${project} memory=${memory || ''} chats=${chats} />`}
-    meta=${html`<span>${tn('document', project.docs.length)}</span><span>${tn('chat', chats.length)}</span><span>${fmtDate(project.created_at)}</span>`}
+    actions=${html`<${ProjectExportMenu} project=${project} memory=${memory || ''} chats=${chats} artifacts=${artifacts} />`}
+    meta=${html`<span>${tn('document', project.docs.length)}</span><span>${tn('chat', chats.length)}</span><span>${tn('artifact', artifacts.length)}</span><span>${fmtDate(project.created_at)}</span>`}
   >
     ${project.description && html`<p class="lede-sm">${project.description}</p>`}
     ${project.prompt && html`<details class="block" open>
@@ -64,21 +69,37 @@ export function ProjectView({ project, memory, chats = [], onPickChats, onBack }
       </a>`)}
       ${!chats.length && html`<p class="fine">${t('view.noneFiled')}</p>`}
     </section>`}
-    ${!project.prompt && !memory && !project.docs.length && !chats.length && html`<div class="empty">${t('view.projEmpty')}</div>`}
+    ${onPickArtifacts && html`<section class="proj-chats">
+      <div class="proj-chats-head">
+        <h2>${t('view.artifacts')}</h2>
+        <button type="button" class="btn" onClick=${onPickArtifacts}>${artifacts.length ? t('view.editArtifacts') : t('view.addArtifacts')}</button>
+      </div>
+      ${artifacts.map((a) => html`<a key=${a.id} class="row-link" href=${`#/artifacts/${encodeURIComponent(a.id)}`}>
+        <span class="row-title">${a.title}</span><span class="row-meta">${fmtDate(a.updated_at)}</span>
+      </a>`)}
+      ${!artifacts.length && html`<p class="fine">${t('view.noneArtifacts')}</p>`}
+    </section>`}
+    ${!project.prompt && !memory && !project.docs.length && !chats.length && !artifacts.length && html`<div class="empty">${t('view.projEmpty')}</div>`}
   <//>`;
 }
 
-export function MemoryView({ title, text, onBack }) {
+/** @param doc  one entry of memoryDocs(): { title, text, ... } */
+export function MemoryView({ doc, onBack }) {
   // Memory files start with a small frontmatter block; show it as-is, it carries the aliases.
-  return html`<${Pane} title=${title} onBack=${onBack}>
-    ${text ? html`<${Markdown} text=${text} />` : html`<div class="empty">${t('view.memEmpty')}</div>`}
+  return html`<${Pane}
+    title=${doc.title} onBack=${onBack}
+    actions=${doc.text.trim() && html`<${TextExportMenu} getText=${() => memoryToMarkdown(doc)} fileName=${memoryFileName(doc)} />`}
+  >
+    ${doc.text ? html`<${Markdown} text=${doc.text} />` : html`<div class="empty">${t('view.memEmpty')}</div>`}
   <//>`;
 }
 
-export function ArtifactView({ artifact, onBack }) {
+export function ArtifactView({ artifact, projects = [], projectId = null, onAssign, onBack }) {
   return html`<${Pane}
     title=${artifact.title}
     onBack=${onBack}
+    actions=${html`${projects.length > 0 && onAssign && html`<${ProjectMenu} kind="artifact" projects=${projects} value=${projectId} onChange=${(id) => onAssign(artifact.id, id)} />`}
+      <${TextExportMenu} getText=${() => artifactToMarkdown(artifact)} fileName=${artifactFileName(artifact)} />`}
     meta=${html`<span>${artifact.kind}</span><span>${tn('version', artifact.versions)}</span><span>${fmtDate(artifact.updated_at)}</span>`}
   >
     ${artifact.page
@@ -105,7 +126,10 @@ function ReflectionBlock({ name, value }) {
 
 export function ReflectionView({ reflection, onBack }) {
   const content = reflection.content || {};
-  return html`<${Pane} title=${reflection.period} onBack=${onBack}>
+  return html`<${Pane}
+    title=${reflection.period} onBack=${onBack}
+    actions=${html`<${TextExportMenu} getText=${() => reflectionToMarkdown(reflection)} fileName=${reflectionFileName(reflection)} />`}
+  >
     ${Object.entries(content).map(([k, v]) => html`<${ReflectionBlock} key=${k} name=${k} value=${v} />`)}
   <//>`;
 }

@@ -11,6 +11,16 @@ export function safeName(text, fallback = 'untitled') {
   return Array.from(name).slice(0, 80).join('').trim() || fallback;
 }
 
+/** Make `name` unique among `used` (case-insensitive), keeping the extension: "a.md" -> "a (2).md". */
+export function uniqueName(name, used) {
+  const dot = name.lastIndexOf('.');
+  const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
+  let candidate = name;
+  for (let i = 2; used.has(candidate.toLowerCase()); i += 1) candidate = `${stem} (${i})${ext}`;
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
 /** A file name that is safe on Windows and macOS, prefixed with the chat date. */
 export function exportFileName(chat) {
   const date = (chat.created_at || '').slice(0, 10);
