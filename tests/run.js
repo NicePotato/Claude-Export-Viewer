@@ -16,6 +16,8 @@ import {
   reflectionToMarkdown, reflectionFileName, reflectionsToZip,
 } from '../src/lib/sectionExport.js';
 import { assign, prune, chatsOfProject, artifactsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
+import { createStore } from '../src/lib/persist.js';
+import { readPref, writePref } from '../src/lib/prefs.js';
 import { LOCALES, t, tn, tNote, setLang, getLang } from '../src/lib/i18n.js';
 
 const results = [];
@@ -575,6 +577,31 @@ test('i18n: code blocks use the translated copy label and the render cache is pe
   inLang('fr', () => ok(renderMarkdown(src).includes('>Copier<')));
   eq(renderMarkdown(src), en);
   ok(en.includes('>Copy<'));
+});
+
+// ---- persistence and preferences (spec criteria 4 and 9) -------------------
+// A throwaway database and key keep these tests away from the viewer's real stored data.
+test('persist: save, load and clear round-trip, and the download list is never stored', async () => {
+  const store = createStore('cev-test-db');
+  try {
+    await store.saveData({ chats: [{ uuid: 'a' }], manifest: { files: [{ url: 'https://claude.ai/x' }] } });
+    const back = await store.loadData();
+    eq(back.chats.length, 1);
+    eq(back.manifest, null, 'manifest must not be written to storage');
+    await store.clearData();
+    eq(await store.loadData(), undefined);
+  } finally {
+    indexedDB.deleteDatabase('cev-test-db');
+  }
+});
+test('prefs: values round-trip as JSON and a missing key gives the fallback', () => {
+  try {
+    eq(readPref('test-roundtrip', 'fb'), 'fb');
+    writePref('test-roundtrip', { 'chat-1': 'proj-1' });
+    eq(readPref('test-roundtrip', 'fb'), { 'chat-1': 'proj-1' });
+  } finally {
+    localStorage.removeItem('cev:test-roundtrip');
+  }
 });
 
 // ---- run ------------------------------------------------------------------
