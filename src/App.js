@@ -4,9 +4,10 @@ import { Landing } from './components/Landing.js';
 import { Rail, ListPane, VIEWS } from './components/Sidebar.js';
 import { ChatView } from './components/ChatView.js';
 import { ProjectView, MemoryView, ArtifactView, ReflectionView, NoSelection } from './components/Views.js';
-import { ChatPicker } from './components/ProjectLinks.js';
+import { ChatPicker, ArtifactPicker } from './components/ProjectLinks.js';
 import { Modal } from './components/Modal.js';
 import { projectsToZip } from './lib/projectExport.js';
+import { memoryDocs, memoryToZip, artifactsToZip, reflectionsToZip } from './lib/sectionExport.js';
 import { downloadBlob } from './lib/download.js';
 import { emptyData, importFiles, hasContent, summarize } from './lib/importer.js';
 import { collectDropped } from './lib/files.js';
@@ -15,7 +16,7 @@ import { searchChats } from './lib/search.js';
 import { chatTitle, fmtDate, groupByRecency, orderGroups, newestFirst } from './lib/format.js';
 import { readPref, writePref } from './lib/prefs.js';
 import { showsNothing, shownCount, diagnoseEmpty } from './lib/empties.js';
-import { assign, prune, chatsOfProject, groupByProject } from './lib/assignments.js';
+import { assign, prune, chatsOfProject, artifactsOfProject, groupByProject } from './lib/assignments.js';
 import { LanguageDialog } from './components/LanguageMenu.js';
 import { t, tn, tNote, setLang, detectLang } from './lib/i18n.js';
 
@@ -61,7 +62,9 @@ export function App() {
   const [order, setOrder] = useState(() => (readPref('order', 'new') === 'old' ? 'old' : 'new'));
   const [groupBy, setGroupBy] = useState(() => (readPref('group', 'date') === 'project' ? 'project' : 'date'));
   const [filed, setFiled] = useState(() => readPref('filed', {}));
+  const [filedArtifacts, setFiledArtifacts] = useState(() => readPref('filedArtifacts', {}));
   const [pickerFor, setPickerFor] = useState(null);
+  const [artifactPickerFor, setArtifactPickerFor] = useState(null);
   const [railOpen, setRailOpen] = useState(() => readPref('rail', false));
   // The language is applied before the first render so no string flashes in the wrong language.
   const [lang, setLangState] = useState(() => { const l = detectLang(); setLang(l); return l; });
@@ -164,6 +167,11 @@ export function App() {
     writePref('filed', next);
     return next;
   });
+  const fileArtifact = (artifactId, projectId) => setFiledArtifacts((cur) => {
+    const next = assign(cur, artifactId, projectId);
+    writePref('filedArtifacts', next);
+    return next;
+  });
   const changeOrder = (next) => { writePref('order', next); setOrder(next); };
   const toggleRail = () => { writePref('rail', !railOpen); setRailOpen(!railOpen); };
   // Every string is computed while rendering, so changing this state re-renders the whole app.
@@ -172,9 +180,12 @@ export function App() {
   const exportAllProjects = () => {
     const entries = projects.map((p) => ({
       project: p, memory: data.memory.perProject[p.uuid] || '', chats: chatsOfProject(assignments, nonEmptyChats, p.uuid),
+      artifacts: artifactsOfProject(artifactAssignments, artifacts, p.uuid),
     }));
     downloadBlob(new Blob([projectsToZip(entries)], { type: 'application/zip' }), 'claude-projects.zip');
   };
+  // The other sections have no per-item options, so each exports as one folder of Markdown files.
+  const exportAllZip = (bytes, name) => downloadBlob(new Blob([bytes], { type: 'application/zip' }), name);
 
   const forget = async () => {
     const msg = remember ? t('forget.stored') : t('forget.page');
@@ -209,6 +220,8 @@ export function App() {
   );
   // Which project each chat is filed under (user-made, see lib/assignments.js).
   const assignments = useMemo(() => prune(filed, data.chats, data.projects), [filed, rev]);
+  // The same for artifacts, which are identified by `id` instead of `uuid`.
+  const artifactAssignments = useMemo(() => prune(filedArtifacts, data.artifacts, data.projects, 'id'), [filedArtifacts, rev]);
 
   // Artifacts with a readable page come first; the rest only have metadata in the export.
   const artifacts = useMemo(
@@ -216,18 +229,16 @@ export function App() {
     [rev, order],
   );
 
+  // Every memory text in one list: the list column, the detail pane and the export all read it.
+  const memoryList = useMemo(() => memoryDocs(data.memory, projectName), [rev, projectName, lang]);
   const memoryItems = useMemo(() => {
     const groups = [];
-    const mem = data.memory;
-    if (mem.global) groups.push({ label: '', items: [{ id: 'global', title: t('mem.about'), meta: t('mem.across') }] });
-    const perProject = Object.keys(mem.perProject).map((uuid) => ({
-      id: `project:${uuid}`, title: projectName.get(uuid) || t('mem.projectMemory'), meta: t('mem.projectMemory'),
-    }));
-    if (perProject.length) groups.push({ label: t('mem.projects'), items: perProject });
-    const files = mem.files.map((f) => ({ id: `file:${f.path}`, title: f.path, meta: t('mem.file') }));
-    if (files.length) groups.push({ label: t('mem.files'), items: files });
+    const pick = (kind) => memoryList.filter((d) => d.kind === kind).map(({ id, title, meta }) => ({ id, title, meta }));
+    if (pick('global').length) groups.push({ label: '', items: pick('global') });
+    if (pick('project').length) groups.push({ label: t('mem.projects'), items: pick('project') });
+    if (pick('file').length) groups.push({ label: t('mem.files'), items: pick('file') });
     return groups;
-  }, [rev, projectName, lang]);
+  }, [memoryList, lang]);
 
   const counts = {
     chats: nonEmptyChats.length,
@@ -243,14 +254,28 @@ export function App() {
       case 'projects':
         return {
           title: t('view.projects'), count: projects.length, sortable: true, emptyText: t('empty.projects'),
-          groups: [{ label: '', items: projects.map((p) => ({ id: p.uuid, title: p.name || t('untitledProject'), meta: tn('document', p.docs.length) })) }],
+          groups: [{
+            label: '',
+            items: projects.map((p) => {
+              const attached = artifactsOfProject(artifactAssignments, artifacts, p.uuid).length;
+              const bits = [tn('document', p.docs.length), tn('chat', chatsOfProject(assignments, nonEmptyChats, p.uuid).length)];
+              if (attached) bits.push(tn('artifact', attached));
+              return { id: p.uuid, title: p.name || t('untitledProject'), meta: bits.join(' · ') };
+            }),
+          }],
         };
       case 'memory':
         return { title: t('view.memory'), count: counts.memory, groups: memoryItems, emptyText: t('empty.memory') };
       case 'artifacts':
         return {
           title: t('view.artifacts'), count: artifacts.length, sortable: true, emptyText: t('empty.artifacts'),
-          groups: [{ label: '', items: artifacts.map((a) => ({ id: a.id, title: a.title, meta: `${a.page ? t('art.page') : t('art.meta')}  ${fmtDate(a.updated_at)}` })) }],
+          groups: [{
+            label: '',
+            items: artifacts.map((a) => {
+              const project = artifactAssignments[a.id] && projectName.get(artifactAssignments[a.id]);
+              return { id: a.id, title: a.title, meta: `${a.page ? t('art.page') : t('art.meta')}  ${fmtDate(a.updated_at)}${project ? `  ${project}` : ''}` };
+            }),
+          }],
         };
       case 'reflections':
         return {
@@ -289,7 +314,7 @@ export function App() {
         return { title: t('view.chats'), count: nonEmptyChats.length, groups, searchable: true, sortable: !query.trim(), groupable: projects.length > 0 && !query.trim(), emptyText: query ? t('empty.chatsNoMatch') : t('empty.chats') };
       }
     }
-  }, [view, rev, lang, query, showEmpty, order, groupBy, projects, assignments, projectName, memoryItems, emptyChats, nonEmptyChats]);
+  }, [view, rev, lang, query, showEmpty, order, groupBy, projects, assignments, artifactAssignments, artifacts, projectName, memoryItems, emptyChats, nonEmptyChats]);
 
   // ---- detail pane --------------------------------------------------------
   const goBack = () => { location.hash = `#/${view}`; };
@@ -301,17 +326,13 @@ export function App() {
       if (chat) { hasSelection = true; detail = html`<${ChatView} key=${chat.uuid} chat=${chat} onBack=${goBack} query=${query} projects=${projects} projectId=${assignments[chat.uuid] || null} onAssign=${fileChat} />`; }
     } else if (view === 'projects') {
       const p = data.projects.find((x) => x.uuid === id);
-      if (p) { hasSelection = true; detail = html`<${ProjectView} key=${p.uuid} project=${p} memory=${data.memory.perProject[p.uuid]} chats=${chatsOfProject(assignments, nonEmptyChats, p.uuid)} onPickChats=${() => setPickerFor(p.uuid)} onBack=${goBack} />`; }
+      if (p) { hasSelection = true; detail = html`<${ProjectView} key=${p.uuid} project=${p} memory=${data.memory.perProject[p.uuid]} chats=${chatsOfProject(assignments, nonEmptyChats, p.uuid)} artifacts=${artifactsOfProject(artifactAssignments, artifacts, p.uuid)} onPickChats=${() => setPickerFor(p.uuid)} onPickArtifacts=${() => setArtifactPickerFor(p.uuid)} onBack=${goBack} />`; }
     } else if (view === 'memory') {
-      let title = '';
-      let text = '';
-      if (id === 'global') { title = t('mem.about'); text = data.memory.global; }
-      else if (id.startsWith('project:')) { const u = id.slice(8); title = projectName.get(u) || t('mem.projectMemory'); text = data.memory.perProject[u]; }
-      else if (id.startsWith('file:')) { const f = data.memory.files.find((x) => x.path === id.slice(5)); title = f?.path || ''; text = f?.content || ''; }
-      if (title) { hasSelection = true; detail = html`<${MemoryView} key=${id} title=${title} text=${text} onBack=${goBack} />`; }
+      const doc = memoryList.find((d) => d.id === id);
+      if (doc) { hasSelection = true; detail = html`<${MemoryView} key=${id} doc=${doc} onBack=${goBack} />`; }
     } else if (view === 'artifacts') {
       const a = data.artifacts.find((x) => x.id === id);
-      if (a) { hasSelection = true; detail = html`<${ArtifactView} key=${a.id} artifact=${a} onBack=${goBack} />`; }
+      if (a) { hasSelection = true; detail = html`<${ArtifactView} key=${a.id} artifact=${a} projects=${projects} projectId=${artifactAssignments[a.id] || null} onAssign=${fileArtifact} onBack=${goBack} />`; }
     } else if (view === 'reflections') {
       const r = data.reflections.find((x) => x.period === id);
       if (r) { hasSelection = true; detail = html`<${ReflectionView} key=${r.period} reflection=${r} onBack=${goBack} />`; }
@@ -335,7 +356,13 @@ export function App() {
       </button>`
     : view === 'projects' && projects.length > 0
       ? html`<button type="button" class="link-btn" onClick=${exportAllProjects}>${t('foot.exportAll')}</button>`
-      : null;
+      : view === 'memory' && memoryList.some((d) => d.text.trim())
+        ? html`<button type="button" class="link-btn" onClick=${() => exportAllZip(memoryToZip(memoryList), 'claude-memory.zip')}>${t('foot.exportMemory')}</button>`
+        : view === 'artifacts' && artifacts.length > 0
+          ? html`<button type="button" class="link-btn" onClick=${() => exportAllZip(artifactsToZip(artifacts), 'claude-artifacts.zip')}>${t('foot.exportArtifacts')}</button>`
+          : view === 'reflections' && data.reflections.length > 0
+            ? html`<button type="button" class="link-btn" onClick=${() => exportAllZip(reflectionsToZip(data.reflections), 'claude-reflections.zip')}>${t('foot.exportReflections')}</button>`
+            : null;
 
   return html`<div class=${`app ${hasSelection ? 'has-selection' : ''} ${view === 'home' ? 'is-home' : ''} ${railOpen ? 'rail-open' : ''}`}>
     <${Rail}
@@ -364,6 +391,10 @@ export function App() {
     ${pickerFor && projects.some((p) => p.uuid === pickerFor) && html`<${ChatPicker}
       project=${projects.find((p) => p.uuid === pickerFor)} chats=${nonEmptyChats} assignments=${assignments}
       projects=${projects} onToggle=${fileChat} onClose=${() => setPickerFor(null)}
+    />`}
+    ${artifactPickerFor && projects.some((p) => p.uuid === artifactPickerFor) && html`<${ArtifactPicker}
+      project=${projects.find((p) => p.uuid === artifactPickerFor)} artifacts=${artifacts} assignments=${artifactAssignments}
+      projects=${projects} onToggle=${fileArtifact} onClose=${() => setArtifactPickerFor(null)}
     />`}
     <input ref=${addInput} type="file" multiple accept=".json,.zip,application/json,application/zip" hidden
       onChange=${(e) => { const f = [...e.target.files].map((file) => ({ path: file.name, file })); e.target.value = ''; if (f.length) handleEntries(f); }} />

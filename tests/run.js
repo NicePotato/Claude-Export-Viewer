@@ -11,7 +11,11 @@ import { toolBrief, groupBlocks, toolLabel } from '../src/components/Message.js'
 import { chatToMarkdown, exportFileName } from '../src/lib/export.js';
 import { showsNothing, diagnoseEmpty } from '../src/lib/empties.js';
 import { projectToMarkdown, projectFiles, projectsToZip, uniqueName } from '../src/lib/projectExport.js';
-import { assign, prune, chatsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
+import {
+  memoryDocs, memoryToMarkdown, memoryFileName, memoryToZip, artifactToMarkdown, artifactFileName, artifactsToZip,
+  reflectionToMarkdown, reflectionFileName, reflectionsToZip,
+} from '../src/lib/sectionExport.js';
+import { assign, prune, chatsOfProject, artifactsOfProject, groupByProject, NO_PROJECT } from '../src/lib/assignments.js';
 import { LOCALES, t, tn, tNote, setLang, getLang } from '../src/lib/i18n.js';
 
 const results = [];
@@ -418,6 +422,65 @@ test('projectExport: zip round-trips with one folder per project', () => {
   const names = Object.keys(files).sort();
   ok(names.includes('Go- study/README.md') && names.includes('Go- study (2)/README.md'), names.join(','));
   ok(strFromU8(files['Go- study/chats/2026-01-01 Slices.md']).includes('hello'));
+});
+
+// ---- artifacts in projects ------------------------------------------------
+const arts = [
+  { id: 'a1', kind: 'page', title: 'Plan: v1', description: 'Short.', updated_at: '2026-03-02T00:00:00Z', versions: 2, page: '# Plan\n\nBody' },
+  { id: 'a2', kind: 'page', title: 'Plan: v1', description: '', updated_at: '', versions: 1, page: '' },
+];
+test('assignments: artifacts are matched by id, and prune takes the key', () => {
+  eq(artifactsOfProject({ a1: 'p1', a2: 'p2' }, arts, 'p1').map((a) => a.id), ['a1']);
+  eq(prune({ a1: 'p1', zz: 'p1', a2: 'gone' }, arts, projAB, 'id'), { a1: 'p1' });
+  eq(prune({ a1: 'p1' }, arts, projAB), {}, 'the default key is uuid, so artifacts are not matched');
+});
+test('projectExport: attached artifacts go into the markdown, the readme and an artifacts folder', () => {
+  const md = projectToMarkdown(proj, { artifacts: arts });
+  ok(md.includes('## Artifacts') && md.includes('Plan: v1'), md);
+  const files = projectFiles(proj, { artifacts: arts });
+  const paths = files.map((f) => f.path);
+  ok(paths.includes('artifacts/Plan- v1.md') && paths.includes('artifacts/Plan- v1 (2).md'), paths.join(','));
+  ok(files.find((f) => f.path === 'README.md').text.includes('## Artifacts'));
+  eq(projectFiles(proj, {}).some((f) => f.path.startsWith('artifacts/')), false);
+  ok(!projectToMarkdown(proj, {}).includes('## Artifacts'));
+});
+
+// ---- export of memory, artifacts and reflections --------------------------
+test('sectionExport: memory docs list global, project and file memory with their zip paths', () => {
+  const mem = { global: 'G text', perProject: { p1: 'P text', p2: '' }, files: [{ path: '/notes/a.md', content: '---\nname: a\n---\nA' }] };
+  const docs = memoryDocs(mem, new Map([['p1', 'Alpha']]));
+  eq(docs.map((d) => [d.id, d.kind, d.title, d.path]), [
+    ['global', 'global', 'About you', 'About you.md'],
+    ['project:p1', 'project', 'Alpha', 'Projects/Alpha.md'],
+    ['project:p2', 'project', 'Project memory', 'Projects/Project memory.md'],
+    ['file:/notes/a.md', 'file', '/notes/a.md', 'Files/notes/a.md'],
+  ]);
+  eq([memoryFileName(docs[0]), memoryFileName(docs[1]), memoryFileName(docs[3])], ['About you.md', 'Alpha (Project memory).md', 'a.md']);
+  ok(memoryToMarkdown(docs[3]).startsWith('---\nname: a\n---'), 'frontmatter must stay first');
+  eq(memoryToMarkdown(docs[2]), '');
+  eq(Object.keys(unzipSync(memoryToZip(docs))).sort(), ['About you.md', 'Files/notes/a.md', 'Projects/Alpha.md']);
+});
+test('sectionExport: a memory file path can never climb out of its folder', () => {
+  const docs = memoryDocs({ global: '', perProject: {}, files: [{ path: '../../x.md', content: 'x' }] });
+  eq(docs.map((d) => d.path), ['Files/file/file/x.md']);
+});
+test('sectionExport: artifact markdown has title, details, description and page; no page gives a note', () => {
+  const md = artifactToMarkdown(arts[0]);
+  ok(md.startsWith('# Plan: v1\n\npage · 2 versions'), md);
+  ok(md.includes('Short.') && md.includes('# Plan\n\nBody'), md);
+  ok(artifactToMarkdown(arts[1]).includes('_The export has no readable page'));
+  eq(artifactFileName(arts[0]), 'Plan- v1.md');
+  eq(Object.keys(unzipSync(artifactsToZip(arts))).sort(), ['Plan- v1 (2).md', 'Plan- v1.md']);
+});
+test('sectionExport: reflection markdown mirrors the pane and skips what it does not show', () => {
+  const refl = { period: '2026-10', content: { what_went_well: ['Shipped it'], highlights: [{ title: 'T', body: 'B' }], summary_text: 'Sum', count: 5 } };
+  eq(reflectionToMarkdown(refl), '# 2026-10\n\n## What went well\n\nShipped it\n\n## Highlights\n\n### T\n\nB\n\n## Summary text\n\nSum\n');
+  eq(reflectionFileName(refl), '2026-10.md');
+  eq(Object.keys(unzipSync(reflectionsToZip([refl, { period: '2026-10' }]))).sort(), ['2026-10 (2).md', '2026-10.md']);
+});
+test('sectionExport: headings follow the language', () => {
+  inLang('de', () => ok(projectToMarkdown(proj, { artifacts: arts }).includes('## Artefakte')));
+  ok(projectToMarkdown(proj, { artifacts: arts }).includes('## Artifacts'));
 });
 
 // ---- download list (manifest) --------------------------------------------

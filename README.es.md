@@ -16,9 +16,9 @@ Herramienta no oficial, sin relación con Anthropic.
 - Ramas: un control `< 2 / 3 >` cambia entre las versiones editadas o reintentadas.
 - Búsqueda de texto completo con las coincidencias resaltadas en el chat. Pulsa `/` para ir a ella.
 - Ordenar por fecha, agrupar por fecha o por proyecto.
-- Proyectos con instrucciones, documentos y memoria, además de los chats que archives en ellos.
+- Proyectos con instrucciones, documentos y memoria, además de los chats y artefactos que archives en ellos.
 - Los chats sin nada legible van a *Chats vacíos*, con el motivo leído del archivo.
-- Exporta un chat o un proyecto como Markdown, o un proyecto (o todos) como zip.
+- Exporta un chat, un proyecto, la memoria, un artefacto o una reflexión como Markdown, o un proyecto, toda la memoria, todos los artefactos o todas las reflexiones como zip.
 - Memoria, artefactos y reflexiones en sus propias secciones.
 - Disponible en inglés, español, alemán, francés, ruso y chino simplificado. Elige el idioma en la página
   de inicio o con el botón de idioma de la barra lateral. También se aplica al Markdown exportado.
@@ -61,8 +61,8 @@ papelera o **Borrar** la elimina.
 
 ## Notas
 
-- **Proyectos:** la exportación no dice a qué proyecto pertenecía un chat. Usa el menú **Proyecto** de un
-  chat, o **Añadir chats** en un proyecto. Las elecciones se guardan solo en este navegador.
+- **Proyectos:** la exportación no dice a qué proyecto pertenecía un chat o un artefacto. Usa el menú **Proyecto** de un
+  chat o artefacto, o **Añadir chats** / **Añadir artefactos** en un proyecto. Las elecciones se guardan solo en este navegador.
 - **Chats vacíos:** el visor no puede recuperar el texto que falta en la exportación ni adivina el motivo.
   Los motivos se limitan a lo que muestra el archivo, p. ej. sin mensajes, todos los cuerpos vacíos o solo
   un marcador de posición.

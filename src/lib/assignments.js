@@ -14,19 +14,28 @@ export function assign(map, chatId, projectId) {
   return next;
 }
 
-/** Drop assignments that point at chats or projects that are not loaded (for example after a re-import). */
-export function prune(map, chats, projects) {
-  const chatIds = new Set(chats.map((c) => c.uuid));
+/**
+ * Drop assignments that point at items or projects that are not loaded (for example after a re-import).
+ * `key` is the id field of the items: chats use `uuid`, artifacts use `id`.
+ */
+export function prune(map, items, projects, key = 'uuid') {
+  const itemIds = new Set(items.map((i) => i[key]));
   const projectIds = new Set(projects.map((p) => p.uuid));
   const next = {};
-  for (const [c, p] of Object.entries(map || {})) if (chatIds.has(c) && projectIds.has(p)) next[c] = p;
+  for (const [c, p] of Object.entries(map || {})) if (itemIds.has(c) && projectIds.has(p)) next[c] = p;
   return next;
 }
 
-/** Chats filed under one project, in the order given. */
-export function chatsOfProject(map, chats, projectId) {
-  return chats.filter((c) => map[c.uuid] === projectId);
+/** Items (chats by default, artifacts with key 'id') filed under one project, in the order given. */
+export function itemsOfProject(map, items, projectId, key = 'uuid') {
+  return items.filter((i) => map[i[key]] === projectId);
 }
+
+/** Chats filed under one project, in the order given. */
+export const chatsOfProject = (map, chats, projectId) => itemsOfProject(map, chats, projectId);
+
+/** Artifacts attached to one project, in the order given. */
+export const artifactsOfProject = (map, artifacts, projectId) => itemsOfProject(map, artifacts, projectId, 'id');
 
 /**
  * Group chats by project for the list column. Projects keep the order given, only projects that
